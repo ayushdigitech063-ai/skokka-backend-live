@@ -1,4 +1,14 @@
 import nodemailer from 'nodemailer';
+import dns from 'node:dns';
+
+// Force Node.js DNS resolution to prioritize IPv4 address resolution globally
+try {
+  if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch (e) {
+  // Ignore if unsupported in environment
+}
 
 export const sendEmail = async (options) => {
   const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -12,11 +22,14 @@ export const sendEmail = async (options) => {
     throw new Error(missingErr);
   }
 
-  // Create reusable transporter object with strict timeouts
+  console.log(`📧 [SMTP Init] Host: ${smtpHost} | Port: ${smtpPort} | Secure: ${smtpPort === 465} | IP Version: IPv4 (family: 4)`);
+
+  // Create reusable transporter object with explicit IPv4 preference & strict timeouts
   const transporter = nodemailer.createTransport({
     host: smtpHost,
     port: smtpPort,
     secure: smtpPort === 465, // true for 465, false for 587
+    family: 4,                // Explicitly force IPv4 to prevent ENETUNREACH on Render
     auth: {
       user: smtpUser,
       pass: smtpPass,
@@ -39,10 +52,10 @@ export const sendEmail = async (options) => {
 
   try {
     const info = await transporter.sendMail(message);
-    console.log(`📧 Real Nodemailer email sent successfully. Message ID: ${info.messageId}`);
+    console.log(`📧 [SMTP Success] Email sent to ${options.email}. Message ID: ${info.messageId}`);
     return true;
   } catch (error) {
-    console.error(`📧 Email sending failed for ${options.email}: ${error.message}`);
+    console.error(`📧 [SMTP Failure] Failed to send email to ${options.email} | Code: ${error.code || 'UNKNOWN'} | Error: ${error.message}`);
     throw new Error(`Email delivery failed: ${error.message}`);
   }
 };
