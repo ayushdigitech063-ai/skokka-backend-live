@@ -1,0 +1,92 @@
+[
+  {
+    "id": "aarohi-singh",
+    "name": "Aarohi Singh",
+    "city": "Mumbai",
+    "age": 27,
+    "rating": 4.9,
+    "rate": "₹6,500 / hour",
+    "availability": "Available tonight",
+    "tags": [
+      "VIP",
+      "Dinner date",
+      "Private suite"
+    ],
+    "description": "Elegant, confident, and naturally charming for upscale evenings and private experiences."
+  },
+  {
+    "id": "naina-verma",
+    "name": "Naina Verma",
+    "city": "Delhi",
+    "age": 24,
+    "rating": 4.8,
+    "rate": "₹5,200 / hour",
+    "availability": "Open this weekend",
+    "tags": [
+      "Model look",
+      "Travel",
+      "Discreet"
+    ],
+    "description": "Warm and polished, with a refined sense of style for social and travel occasions."
+  },
+  {
+    "id": "rhea-malhotra",
+    "name": "Rhea Malhotra",
+    "city": "Bengaluru",
+    "age": 29,
+    "rating": 5,
+    "rate": "₹7,100 / hour",
+    "availability": "Last-minute booking",
+    "tags": [
+      "Luxury",
+      "Social events",
+      "Companion"
+    ],
+    "description": "A sophisticated presence for luxury dinners, weekend plans, and curated experiences."
+  },
+  {
+    "id": "sanya-kapoor",
+    "name": "Sanya Kapoor",
+    "city": "Goa",
+    "age": 26,
+    "rating": 4.7,
+    "rate": "₹4,900 / hour",
+    "availability": "Available this week",
+    "tags": [
+      "Beachside",
+      "Relaxed",
+      "Weekend escape"
+    ],
+    "description": "Effortlessly charming and easygoing, ideal for laid-back getaways and scenic evenings."
+  },
+  {
+    "id": "meera-das",
+    "name": "Meera Das",
+    "city": "Pune",
+    "age": 31,
+    "rating": 4.9,
+    "rate": "₹6,100 / hour",
+    "availability": "Flexible schedule",
+    "tags": [
+      "Classy",
+      "Conversation",
+      "Private dining"
+    ],
+    "description": "A graceful conversationalist for elegant dates and intimate private settings."
+  },
+  {
+    "id": "tanya-shetty",
+    "name": "Tanya Shetty",
+    "city": "Hyderabad",
+    "age": 28,
+    "rating": 4.8,
+    "rate": "₹5,700 / hour",
+    "availability": "Booked for events",
+    "tags": [
+      "High profile",
+      "Premium",
+      "Events"
+    ],
+    "description": "Known for polished presence, confidence, and an effortless charm in premium settings."
+  }
+]
