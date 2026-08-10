@@ -1,61 +1,59 @@
-import nodemailer from 'nodemailer';
-import dns from 'node:dns';
-
-// Force Node.js DNS resolution to prioritize IPv4 address resolution globally
-try {
-  if (typeof dns.setDefaultResultOrder === 'function') {
-    dns.setDefaultResultOrder('ipv4first');
-  }
-} catch (e) {
-  // Ignore if unsupported in environment
-}
-
+/**
+ * Brevo Transactional Email Utility
+ * Replaces Gmail SMTP with Brevo Transactional Email REST API v3
+ */
 export const sendEmail = async (options) => {
-  const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const smtpPort = Number(process.env.SMTP_PORT) || 587;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.FROM_EMAIL || 'ayushdigitech49@gmail.com';
+  const senderName = process.env.FROM_NAME || 'Skokka Security';
 
-  if (!smtpUser || !smtpPass) {
-    const missingErr = 'SMTP credentials (SMTP_USER / SMTP_PASS) are not configured in environment variables.';
-    console.error(`📧 Email sending failed: ${missingErr}`);
+  if (!apiKey) {
+    const missingErr = 'BREVO_API_KEY environment variable is not configured on Render.';
+    console.error(`[EMAIL] ❌ Brevo delivery failed: ${missingErr}`);
     throw new Error(missingErr);
   }
 
-  console.log(`📧 [SMTP Init] Host: ${smtpHost} | Port: ${smtpPort} | Secure: ${smtpPort === 465} | IP Version: IPv4 (family: 4)`);
+  console.log(`[EMAIL] Sending via Brevo REST API to ${options.email}...`);
 
-  // Create reusable transporter object with explicit IPv4 preference & strict timeouts
-  const transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpPort === 465, // true for 465, false for 587
-    family: 4,                // Explicitly force IPv4 to prevent ENETUNREACH on Render
-    auth: {
-      user: smtpUser,
-      pass: smtpPass,
+  const payload = {
+    sender: {
+      name: senderName,
+      email: senderEmail,
     },
-    tls: {
-      rejectUnauthorized: false,
-    },
-    connectionTimeout: 10000, // 10s
-    greetingTimeout: 10000,   // 10s
-    socketTimeout: 15000,     // 15s
-  });
-
-  const message = {
-    from: `"${process.env.FROM_NAME || 'Skokka Security'}" <${process.env.FROM_EMAIL || smtpUser}>`,
-    to: options.email,
+    to: [
+      {
+        email: options.email,
+      },
+    ],
     subject: options.subject,
-    text: options.message,
-    html: options.html || `<p>${options.message}</p>`,
+    textContent: options.message,
+    htmlContent: options.html || `<p>${options.message}</p>`,
   };
 
   try {
-    const info = await transporter.sendMail(message);
-    console.log(`📧 [SMTP Success] Email sent to ${options.email}. Message ID: ${info.messageId}`);
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const errorMsg = data.message || `HTTP ${response.status} ${response.statusText}`;
+      console.error(`[EMAIL] ❌ Brevo delivery failed: ${errorMsg}`);
+      throw new Error(`Brevo API Error: ${errorMsg}`);
+    }
+
+    console.log(`[EMAIL] ✅ Brevo email sent successfully. Message ID: ${data.messageId || 'sent'}`);
     return true;
   } catch (error) {
-    console.error(`📧 [SMTP Failure] Failed to send email to ${options.email} | Code: ${error.code || 'UNKNOWN'} | Error: ${error.message}`);
-    throw new Error(`Email delivery failed: ${error.message}`);
+    console.error(`[EMAIL] ❌ Brevo delivery failed: ${error.message}`);
+    throw new Error(`Brevo Email delivery failed: ${error.message}`);
   }
 };
+
