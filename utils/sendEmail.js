@@ -12,11 +12,11 @@ export const sendEmail = async (options) => {
     throw new Error(missingErr);
   }
 
-  // Create reusable transporter object using SMTP transport
+  // Create reusable transporter object with strict timeouts
   const transporter = nodemailer.createTransport({
     host: smtpHost,
     port: smtpPort,
-    secure: false, // true for 465, false for 587/other ports
+    secure: smtpPort === 465, // true for 465, false for 587
     auth: {
       user: smtpUser,
       pass: smtpPass,
@@ -24,6 +24,9 @@ export const sendEmail = async (options) => {
     tls: {
       rejectUnauthorized: false,
     },
+    connectionTimeout: 10000, // 10s
+    greetingTimeout: 10000,   // 10s
+    socketTimeout: 15000,     // 15s
   });
 
   const message = {
@@ -35,14 +38,11 @@ export const sendEmail = async (options) => {
   };
 
   try {
-    // Verify SMTP connection config safely
-    await transporter.verify();
-
     const info = await transporter.sendMail(message);
     console.log(`📧 Real Nodemailer email sent successfully. Message ID: ${info.messageId}`);
     return true;
   } catch (error) {
-    console.error(`📧 Email sending failed: ${error.message}`);
+    console.error(`📧 Email sending failed for ${options.email}: ${error.message}`);
     throw new Error(`Email delivery failed: ${error.message}`);
   }
 };

@@ -13,15 +13,29 @@ import locationRoutes from './routes/locationRoutes.js';
 
 const app = express();
 
+// Render / Proxy Reverse Proxy Configuration
+app.set('trust proxy', 1);
+
 // Security HTTP Headers
 app.use(helmet());
+
+// Allowed origins
+const allowedOrigins = [
+  'https://skokka-website-frontend.vercel.app',
+  'https://skokka-frontend.vercel.app',
+  process.env.CLIENT_URL,
+].filter(Boolean);
 
 // CORS Configuration
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, postman) or any localhost/dev origin
-      if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin === process.env.CLIENT_URL) {
+      if (
+        !origin ||
+        origin.startsWith('http://localhost') ||
+        origin.startsWith('http://127.0.0.1') ||
+        allowedOrigins.includes(origin)
+      ) {
         return callback(null, true);
       }
       return callback(null, true);

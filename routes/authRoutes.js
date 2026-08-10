@@ -47,7 +47,38 @@ router.post(
 import User from '../models/User.js';
 import { sendEmail } from '../utils/sendEmail.js';
 
-// User Registration Route (Checks duplicate email & sends activation email)
+// Helper to trigger email send asynchronously without blocking HTTP response
+const dispatchActivationEmailAsync = (email) => {
+  const appBaseUrl =
+    process.env.CLIENT_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'https://skokka-website-frontend.vercel.app';
+  const activationUrl = `${appBaseUrl}/admin?verify_login=true&email=${encodeURIComponent(email)}`;
+
+  sendEmail({
+    email,
+    subject: '🚀 Activate Your Skokka Classifieds Account',
+    message: `Click here to activate your account: ${activationUrl}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 25px; background-color: #050B1F; color: #ffffff; border-radius: 16px;">
+        <h2 style="color: #d5639b; margin-bottom: 5px;">SKOKKA CLASSIFIEDS PORTAL</h2>
+        <p style="color: #94a3b8; font-size: 14px;">Account Activation & Verification Request</p>
+        <hr style="border-color: #1e293b; margin: 20px 0;" />
+        <p>Hello <strong>${email.split('@')[0]}</strong>,</p>
+        <p>Thank you for registering on Skokka India. Please click the button below to complete your activation:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${activationUrl}" style="background: #d5639b; color: #ffffff; padding: 14px 28px; font-size: 15px; font-weight: bold; text-decoration: none; border-radius: 30px; display: inline-block;">
+            🚀 ACTIVATE ACCOUNT & ACCESS DASHBOARD
+          </a>
+        </div>
+      </div>
+    `,
+  }).catch((err) => {
+    console.error(`⚠️ Background activation email dispatch error for ${email}:`, err.message);
+  });
+};
+
+// User Registration Route (Checks duplicate email & sends non-blocking activation email)
 router.post('/user-register', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -70,48 +101,46 @@ router.post('/user-register', async (req, res) => {
       isActivated: false,
     });
 
-    const appBaseUrl = process.env.CLIENT_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://skokka-frontend.vercel.app';
-    const activationUrl = `${appBaseUrl}/admin?verify_login=true&email=${encodeURIComponent(cleanEmail)}`;
+    // Asynchronously dispatch activation email (non-blocking)
+    dispatchActivationEmailAsync(cleanEmail);
 
-    let emailSent = false;
-    let emailError = null;
-
-    try {
-      await sendEmail({
-        email: cleanEmail,
-        subject: '🚀 Activate Your Skokka Classifieds Account',
-        message: `Click here to activate your account: ${activationUrl}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; padding: 25px; background-color: #050B1F; color: #ffffff; border-radius: 16px;">
-            <h2 style="color: #d5639b; margin-bottom: 5px;">SKOKKA CLASSIFIEDS PORTAL</h2>
-            <p style="color: #94a3b8; font-size: 14px;">Account Activation & Verification Request</p>
-            <hr style="border-color: #1e293b; margin: 20px 0;" />
-            <p>Hello <strong>${cleanEmail.split('@')[0]}</strong>,</p>
-            <p>Thank you for registering on Skokka India. Please click the button below to complete your activation:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${activationUrl}" style="background: #d5639b; color: #ffffff; padding: 14px 28px; font-size: 15px; font-weight: bold; text-decoration: none; border-radius: 30px; display: inline-block;">
-                🚀 ACTIVATE ACCOUNT & ACCESS DASHBOARD
-              </a>
-            </div>
-          </div>
-        `,
-      });
-      emailSent = true;
-    } catch (sendErr) {
-      console.error(`⚠️ Registration email send warning for ${cleanEmail}: ${sendErr.message}`);
-      emailError = sendErr.message;
-    }
-
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: emailSent
-        ? 'Registration successful! Activation email sent to your inbox.'
-        : `Registration created, but activation email could not be delivered: ${emailError}`,
-      emailSent,
+      message: 'Registration successful! Activation link sent to your email.',
       user: { id: newUser._id, email: newUser.email, customerCode: newUser.customerCode },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Resend Activation Email Route
+router.post('/resend-activation', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found with this email.' });
+    }
+
+    if (user.isActivated) {
+      return res.status(400).json({ success: false, message: 'Account is already activated. Please log in.' });
+    }
+
+    dispatchActivationEmailAsync(cleanEmail);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Activation link resent successfully! Please check your email inbox.',
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
