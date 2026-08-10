@@ -53,7 +53,7 @@ const dispatchActivationEmailAsync = (email) => {
     process.env.CLIENT_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
     'https://skokka-website-frontend.vercel.app';
-  const activationUrl = `${appBaseUrl}/admin?verify_login=true&email=${encodeURIComponent(email)}`;
+  const activationUrl = `${appBaseUrl}/dashboard?verify_login=true&email=${encodeURIComponent(email)}`;
 
   sendEmail({
     email,
