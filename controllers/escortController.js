@@ -24,6 +24,7 @@ const toFrontend = (doc) => ({
   packageType: doc.packageType,
   isVerified: doc.isVerified,
   isVip: doc.isVip,
+  isSuperTop: doc.isSuperTop || doc.packageType === "SUPER_TOP" || doc.packageType?.includes("SUPER_TOP") || false,
   status: doc.status,
   submittedAt: doc.createdAt,
   submittedBy: doc.submittedBy,
@@ -43,7 +44,7 @@ export const getPublicEscorts = async (req, res) => {
     if (vip === 'true') filter.isVip = true;
     if (verified === 'true') { filter.isVerified = true; filter.isVip = false; }
 
-    const profiles = await EscortProfile.find(filter).sort({ isVip: -1, isVerified: -1, createdAt: -1 });
+    const profiles = await EscortProfile.find(filter).sort({ isSuperTop: -1, isVip: -1, isVerified: -1, createdAt: -1 });
     return res.status(200).json({ success: true, count: profiles.length, data: profiles.map(toFrontend) });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -74,8 +75,8 @@ export const getEscortById = async (req, res) => {
     const { id } = req.params;
     let extractedId = id.trim();
 
-    // Extract skId (e.g. sk-103) or Mongo ObjectId from compound slug e.g. "priya-sharma-sk-103"
-    const skMatch = extractedId.match(/(sk-\d+)/i);
+    // Extract skId (e.g. sk-103 or ad-1234) or Mongo ObjectId from compound slug e.g. "priya-sharma-sk-103"
+    const skMatch = extractedId.match(/(sk-\d+|ad-\d+)/i);
     const mongoMatch = extractedId.match(/([0-9a-fA-F]{24})$/i);
 
     if (skMatch) {
@@ -88,6 +89,8 @@ export const getEscortById = async (req, res) => {
       $or: [
         { skId: new RegExp(`^${extractedId}$`, 'i') },
         { skId: new RegExp(`^${id}$`, 'i') },
+        { id: new RegExp(`^${extractedId}$`, 'i') },
+        { id: new RegExp(`^${id}$`, 'i') },
       ],
     });
 
@@ -109,15 +112,20 @@ export const getEscortById = async (req, res) => {
 // ─────────────────────────────────────────────────────────
 export const createEscort = async (req, res) => {
   try {
-    const data = req.body;
-    // If submitted by advertiser — always PENDING_APPROVAL & free tier
+    const data = { ...req.body };
+
+    // ⚠️ Always strip skId and id from incoming payload — the pre-save hook
+    // generates a guaranteed-unique skId.
+    delete data.skId;
+    delete data.id;
+    delete data._mongoId;
+
+    // If submitted by advertiser — set status to PENDING_APPROVAL while preserving chosen package & VIP flags
     const isAdminCreate = req.headers['x-admin-create'] === 'true';
     if (!isAdminCreate) {
       data.status = 'PENDING_APPROVAL';
-      data.isVip = false;
-      data.isVerified = false;
-      data.packageType = 'FREE_STANDARD';
-      data.price = 0;
+      // Ensure default packageType if missing
+      if (!data.packageType) data.packageType = 'FREE_STANDARD';
     }
     const profile = await EscortProfile.create(data);
     return res.status(201).json({ success: true, data: toFrontend(profile) });
@@ -162,7 +170,24 @@ export const setEscortStatus = async (req, res) => {
     let profile = await EscortProfile.findOne({ skId: id });
     if (!profile && id.length === 24) profile = await EscortProfile.findById(id);
     if (!profile) return res.status(404).json({ success: false, message: 'Profile not found.' });
+
     profile.status = status;
+
+    // When approving, activate SUPER_TOP / VIP / Verified flags based on package
+    if (status === 'APPROVED') {
+      const pkg = (profile.packageType || '').toUpperCase();
+      if (pkg.includes('SUPER_TOP') || profile.isSuperTop || (profile.price && profile.price >= 6999)) {
+        profile.isSuperTop = true;
+        profile.isVip = true;
+        profile.isVerified = true;
+      } else if (pkg.includes('VIP') || profile.isVip || (profile.price && profile.price >= 4999)) {
+        profile.isVip = true;
+        profile.isVerified = true;
+      } else if (pkg.includes('VERIFIED') || profile.isVerified || (profile.price && profile.price > 0)) {
+        profile.isVerified = true;
+      }
+    }
+
     await profile.save();
     return res.status(200).json({ success: true, data: toFrontend(profile) });
   } catch (err) {
@@ -183,12 +208,14 @@ export const setEscortPlacement = async (req, res) => {
     if (!profile && id.length === 24) profile = await EscortProfile.findById(id);
     if (!profile) return res.status(404).json({ success: false, message: 'Profile not found.' });
 
-    if (placement === 'VIP') {
-      profile.isVip = true; profile.isVerified = true; profile.packageType = 'VIP Featured ⭐'; profile.price = profile.price || 6000;
+    if (placement === 'SUPER_TOP') {
+      profile.isSuperTop = true; profile.isVip = true; profile.isVerified = true; profile.packageType = 'SUPER TOP Booster ⚡'; profile.price = profile.price || 6999;
+    } else if (placement === 'VIP') {
+      profile.isSuperTop = false; profile.isVip = true; profile.isVerified = true; profile.packageType = 'VIP Featured ⭐'; profile.price = profile.price || 4999;
     } else if (placement === 'VERIFIED') {
-      profile.isVip = false; profile.isVerified = true; profile.packageType = 'Verified Listing 🛡️'; profile.price = profile.price || 3000;
+      profile.isSuperTop = false; profile.isVip = false; profile.isVerified = true; profile.packageType = 'Verified Listing 🛡️'; profile.price = profile.price || 2499;
     } else {
-      profile.isVip = false; profile.isVerified = false; profile.packageType = 'FREE_STANDARD'; profile.price = 0;
+      profile.isSuperTop = false; profile.isVip = false; profile.isVerified = false; profile.packageType = 'FREE_STANDARD'; profile.price = 0;
     }
     await profile.save();
     return res.status(200).json({ success: true, data: toFrontend(profile) });

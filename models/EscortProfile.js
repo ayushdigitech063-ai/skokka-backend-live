@@ -43,6 +43,7 @@ const EscortProfileSchema = new mongoose.Schema(
     },
     isVerified: { type: Boolean, default: false },
     isVip: { type: Boolean, default: false },
+    isSuperTop: { type: Boolean, default: false },
 
     // Approval status
     status: {
@@ -64,11 +65,29 @@ const EscortProfileSchema = new mongoose.Schema(
   }
 );
 
-// Auto-generate skId like SK-101 before saving
+// Auto-generate unique skId like SK-101 before saving
 EscortProfileSchema.pre('save', async function () {
-  if (!this.skId) {
-    const count = await mongoose.model('EscortProfile').countDocuments();
-    this.skId = `SK-${101 + count}`;
+  if (!this.skId || typeof this.skId !== 'string' || !this.skId.trim()) {
+    const profiles = await mongoose.model('EscortProfile').find({ skId: /^SK-\d+$/i }).select('skId').lean();
+    let maxNum = 100;
+    for (const p of profiles) {
+      if (p.skId) {
+        const match = p.skId.match(/SK-(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      }
+    }
+    let nextNum = maxNum + 1;
+    let candidate = `SK-${nextNum}`;
+    while (await mongoose.model('EscortProfile').exists({ skId: candidate })) {
+      nextNum++;
+      candidate = `SK-${nextNum}`;
+    }
+    this.skId = candidate;
   }
 });
 
