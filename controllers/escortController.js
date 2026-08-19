@@ -85,12 +85,19 @@ export const getEscortById = async (req, res) => {
       extractedId = mongoMatch[1];
     }
 
+    const safeExtracted = extractedId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const safeRawId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     let profile = await EscortProfile.findOne({
       $or: [
-        { skId: new RegExp(`^${extractedId}$`, 'i') },
-        { skId: new RegExp(`^${id}$`, 'i') },
-        { id: new RegExp(`^${extractedId}$`, 'i') },
-        { id: new RegExp(`^${id}$`, 'i') },
+        { skId: { $regex: new RegExp(`^${safeExtracted}$`, 'i') } },
+        { skId: { $regex: new RegExp(`^${safeRawId}$`, 'i') } },
+        { id: { $regex: new RegExp(`^${safeExtracted}$`, 'i') } },
+        { id: { $regex: new RegExp(`^${safeRawId}$`, 'i') } },
+        { skId: extractedId },
+        { skId: id },
+        { id: extractedId },
+        { id: id },
       ],
     });
 
