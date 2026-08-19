@@ -7,9 +7,10 @@ import { sendOtpService } from '../services/adminService.js';
 // @access  Public
 export const loginAdmin = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, adminId, password } = req.body;
+    const cleanEmail = String(email || adminId || '').trim().toLowerCase();
 
-    const admin = await Admin.findOne({ email }).select('+password +otp +otpExpire');
+    const admin = await Admin.findOne({ email: cleanEmail }).select('+password +otp +otpExpire');
     if (!admin) {
       return res.status(401).json({
         success: false,

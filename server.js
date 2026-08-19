@@ -6,6 +6,7 @@ import app from "./app.js";
 import { connectDB } from "./config/db.js";
 import EscortProfile from "./models/EscortProfile.js";
 import { autoSeedLocations } from "./utils/seedLocations.js";
+import { autoSeedSuperAdmin } from "./utils/seedAdmin.js";
 
 // Render provides process.env.PORT automatically.
 // Local development will use 4000 if PORT is not defined.
@@ -210,6 +211,7 @@ connectDB()
     try {
       await autoSeedEscorts();
       await autoSeedLocations();
+      await autoSeedSuperAdmin();
 
       const server = app.listen(PORT, "0.0.0.0", () => {
         console.log("========================================");
