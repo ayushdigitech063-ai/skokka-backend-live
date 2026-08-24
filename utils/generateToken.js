@@ -5,7 +5,7 @@ export const generateToken = (id) => {
     expiresIn: process.env.JWT_EXPIRE || '24h',
   });
 };
-
+// uesgfweliueg
 export const generateRefreshToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET || 'skokka_refresh_secret_key_2026', {
     expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d',
