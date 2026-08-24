@@ -46,7 +46,7 @@ router.post(
 
 import User from '../models/User.js';
 import { sendEmail } from '../utils/sendEmail.js';
-import { verifyTurnstileToken } from '../utils/verifyTurnstile.js';
+import { verifyRecaptchaToken } from '../utils/verifyRecaptcha.js';
 
 // Helper to trigger email send asynchronously without blocking HTTP response
 const dispatchActivationEmailAsync = (email) => {
@@ -82,10 +82,10 @@ const dispatchActivationEmailAsync = (email) => {
 // User Registration Route (Checks duplicate email & sends non-blocking activation email)
 router.post('/user-register', async (req, res) => {
   try {
-    const { email, password, turnstileToken } = req.body;
+    const { email, password, captchaToken } = req.body;
 
-    // Verify Cloudflare Turnstile CAPTCHA token
-    const captchaResult = await verifyTurnstileToken(turnstileToken, req.ip);
+    // Verify Google reCAPTCHA v2 token
+    const captchaResult = await verifyRecaptchaToken(captchaToken, req.ip);
     if (!captchaResult.success) {
       return res.status(400).json({ success: false, message: captchaResult.message });
     }
@@ -155,10 +155,10 @@ router.post('/resend-activation', async (req, res) => {
 // User Login Route
 router.post('/user-login', async (req, res) => {
   try {
-    const { email, password, turnstileToken } = req.body;
+    const { email, password, captchaToken } = req.body;
 
-    // Verify Cloudflare Turnstile CAPTCHA token
-    const captchaResult = await verifyTurnstileToken(turnstileToken, req.ip);
+    // Verify Google reCAPTCHA v2 token
+    const captchaResult = await verifyRecaptchaToken(captchaToken, req.ip);
     if (!captchaResult.success) {
       return res.status(400).json({ success: false, message: captchaResult.message });
     }
