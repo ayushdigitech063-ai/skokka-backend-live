@@ -46,6 +46,7 @@ router.post(
 
 import User from '../models/User.js';
 import { sendEmail } from '../utils/sendEmail.js';
+import { verifyTurnstileToken } from '../utils/verifyTurnstile.js';
 
 // Helper to trigger email send asynchronously without blocking HTTP response
 const dispatchActivationEmailAsync = (email) => {
@@ -81,7 +82,14 @@ const dispatchActivationEmailAsync = (email) => {
 // User Registration Route (Checks duplicate email & sends non-blocking activation email)
 router.post('/user-register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, turnstileToken } = req.body;
+
+    // Verify Cloudflare Turnstile CAPTCHA token
+    const captchaResult = await verifyTurnstileToken(turnstileToken, req.ip);
+    if (!captchaResult.success) {
+      return res.status(400).json({ success: false, message: captchaResult.message });
+    }
+
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email and password required.' });
     }
@@ -147,7 +155,14 @@ router.post('/resend-activation', async (req, res) => {
 // User Login Route
 router.post('/user-login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, turnstileToken } = req.body;
+
+    // Verify Cloudflare Turnstile CAPTCHA token
+    const captchaResult = await verifyTurnstileToken(turnstileToken, req.ip);
+    if (!captchaResult.success) {
+      return res.status(400).json({ success: false, message: captchaResult.message });
+    }
+
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email and password required.' });
     }

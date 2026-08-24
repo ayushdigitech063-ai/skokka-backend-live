@@ -1,13 +1,24 @@
 import { Admin } from '../models/Admin.js';
 import { generateToken, generateRefreshToken } from '../utils/generateToken.js';
 import { sendOtpService } from '../services/adminService.js';
+import { verifyTurnstileToken } from '../utils/verifyTurnstile.js';
 
 // @desc    Admin / Super Admin Login
 // @route   POST /api/auth/login
 // @access  Public
 export const loginAdmin = async (req, res) => {
   try {
-    const { email, adminId, password } = req.body;
+    const { email, adminId, password, turnstileToken } = req.body;
+
+    // Verify Cloudflare Turnstile CAPTCHA token
+    const captchaResult = await verifyTurnstileToken(turnstileToken, req.ip);
+    if (!captchaResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: captchaResult.message,
+      });
+    }
+
     const cleanEmail = String(email || adminId || '').trim().toLowerCase();
 
     const admin = await Admin.findOne({ email: cleanEmail }).select('+password +otp +otpExpire');
