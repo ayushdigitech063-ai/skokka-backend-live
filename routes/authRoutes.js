@@ -106,7 +106,7 @@ router.post('/user-register', async (req, res) => {
     const newUser = await User.create({
       email: cleanEmail,
       password,
-      isActivated: false,
+      isActivated: true,
     });
 
     // Asynchronously dispatch activation email (non-blocking)
@@ -184,7 +184,8 @@ router.post('/user-login', async (req, res) => {
       });
     }
 
-    // Require activation via email link before allowing login
+    // Email activation check removed - captcha is used instead
+    /*
     if (!user.isActivated) {
       return res.status(403).json({
         success: false,
@@ -192,6 +193,7 @@ router.post('/user-login', async (req, res) => {
         isActivated: false,
       });
     }
+    */
 
     res.status(200).json({
       success: true,

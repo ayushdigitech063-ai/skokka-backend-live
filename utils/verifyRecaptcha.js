@@ -4,10 +4,10 @@
  * Secret Key is read strictly from process.env.RECAPTCHA_SECRET_KEY.
  */
 export const verifyRecaptchaToken = async (captchaToken, remoteIp) => {
-  const secretKey = process.env.RECAPTCHA_SECRET_KEY || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY || '6Ld5O5YtAAAAAH80kOMWjCIuTxShausRZTI9ZLPT';
 
   if (!captchaToken) {
-    console.warn('[RECAPTCHA] ❌ Verification failed: No CAPTCHA token provided.');
+    console.warn('[RECAPTCHA] ❌ Verification failed: No CAPTCHA token provided in request.');
     return {
       success: false,
       message: 'Please complete the CAPTCHA verification.',
@@ -31,10 +31,10 @@ export const verifyRecaptchaToken = async (captchaToken, remoteIp) => {
     const data = await response.json();
 
     if (!data.success) {
-      console.warn('[RECAPTCHA] ❌ Token verification failed.');
+      console.warn('[RECAPTCHA] ❌ Token verification failed with Google. Error codes:', data['error-codes']);
       return {
         success: false,
-        message: 'Please complete the CAPTCHA verification.',
+        message: 'CAPTCHA verification failed. Please complete the CAPTCHA again.',
       };
     }
 
@@ -44,7 +44,7 @@ export const verifyRecaptchaToken = async (captchaToken, remoteIp) => {
     console.error('[RECAPTCHA] 💥 Exception during Google siteverify API call:', error.message);
     return {
       success: false,
-      message: 'Please complete the CAPTCHA verification.',
+      message: 'CAPTCHA verification failed. Please complete the CAPTCHA again.',
     };
   }
 };
