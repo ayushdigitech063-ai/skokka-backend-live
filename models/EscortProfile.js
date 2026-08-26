@@ -49,7 +49,7 @@ const EscortProfileSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ['APPROVED', 'PENDING_APPROVAL', 'REJECTED'],
-      default: 'PENDING_APPROVAL',
+      default: 'APPROVED',
     },
 
     // Who submitted (optional — for user-submitted ads)

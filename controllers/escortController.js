@@ -127,10 +127,10 @@ export const createEscort = async (req, res) => {
     delete data.id;
     delete data._mongoId;
 
-    // If submitted by advertiser — set status to PENDING_APPROVAL while preserving chosen package & VIP flags
+    // Advertiser post ads auto-approval
     const isAdminCreate = req.headers['x-admin-create'] === 'true';
     if (!isAdminCreate) {
-      data.status = 'PENDING_APPROVAL';
+      data.status = 'APPROVED';
       // Ensure default packageType if missing
       if (!data.packageType) data.packageType = 'FREE_STANDARD';
     }
