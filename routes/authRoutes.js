@@ -109,12 +109,9 @@ router.post('/user-register', async (req, res) => {
       isActivated: true,
     });
 
-    // Asynchronously dispatch activation email (non-blocking)
-    dispatchActivationEmailAsync(cleanEmail);
-
     return res.status(201).json({
       success: true,
-      message: 'Registration successful! Activation link sent to your email.',
+      message: 'Registration successful!',
       user: { id: newUser._id, email: newUser.email, customerCode: newUser.customerCode },
     });
   } catch (err) {
