@@ -104,33 +104,61 @@ export async function applyWatermarkToImage(input) {
     const format = metadata.format || 'jpeg';
 
     // Calculate dynamic responsive font size based on image dimensions
-    // Approx 25%-30% scaling relative to image minimum dimension
     const minDim = Math.min(width, height);
-    const fontSize = Math.max(22, Math.round(minDim / 10));
+    const mainFontSize = Math.max(32, Math.round(minDim / 7));
+    const sideFontSize = Math.max(16, Math.round(minDim / 18));
 
-    // SVG Watermark Overlay
+    // SVG Watermark Overlay with Large Center & Side Text
     const svgOverlay = `
       <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
         <style>
-          .watermark-text {
+          .watermark-main {
             fill: #ffffff;
-            fill-opacity: 0.28;
+            fill-opacity: 0.42;
+            stroke: #000000;
+            stroke-opacity: 0.35;
+            stroke-width: 2px;
             font-family: Arial, Helvetica, sans-serif;
-            font-size: ${fontSize}px;
-            font-weight: 800;
-            letter-spacing: 4px;
+            font-size: ${mainFontSize}px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+          }
+          .watermark-side {
+            fill: #ffffff;
+            fill-opacity: 0.55;
+            stroke: #000000;
+            stroke-opacity: 0.3;
+            stroke-width: 1px;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: ${sideFontSize}px;
+            font-weight: 900;
+            letter-spacing: 5px;
             text-transform: uppercase;
           }
         </style>
+        <!-- Large Center Diagonal Watermark -->
         <text
           x="50%"
           y="50%"
           text-anchor="middle"
           dominant-baseline="central"
-          transform="rotate(-22, ${width / 2}, ${height / 2})"
-          class="watermark-text"
+          transform="rotate(-25, ${width / 2}, ${height / 2})"
+          class="watermark-main"
         >
-          MyCityQueen
+          MYCITYQUEEN
+        </text>
+
+        <!-- Right Side Middle Vertical Watermark -->
+        <text
+          x="${width - sideFontSize - 10}"
+          y="50%"
+          text-anchor="middle"
+          dominant-baseline="central"
+          transform="rotate(-90, ${width - sideFontSize - 10}, ${height / 2})"
+          class="watermark-side"
+        >
+          MYCITYQUEEN
         </text>
       </svg>
     `;
