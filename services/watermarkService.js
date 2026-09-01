@@ -105,61 +105,41 @@ export async function applyWatermarkToImage(input) {
 
     // Calculate dynamic responsive font size based on image dimensions
     const minDim = Math.min(width, height);
-    const mainFontSize = Math.max(32, Math.round(minDim / 7));
-    const sideFontSize = Math.max(16, Math.round(minDim / 18));
+    const fontSize = Math.max(30, Math.round(minDim / 7));
 
-    // SVG Watermark Overlay with Large Center & Side Text
+    // SVG Watermark Overlay matching exact reference image:
+    // Center horizontal watermark with crown logo icon + "mycityqueen" text
     const svgOverlay = `
       <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
         <style>
-          .watermark-main {
+          .watermark-center {
             fill: #ffffff;
-            fill-opacity: 0.42;
+            fill-opacity: 0.58;
             stroke: #000000;
             stroke-opacity: 0.35;
-            stroke-width: 2px;
+            stroke-width: 1.5px;
             font-family: Arial, Helvetica, sans-serif;
-            font-size: ${mainFontSize}px;
-            font-weight: 900;
-            letter-spacing: 6px;
-            text-transform: uppercase;
+            font-size: ${fontSize}px;
+            font-weight: 800;
+            letter-spacing: 2px;
           }
-          .watermark-side {
+          .crown-icon {
             fill: #ffffff;
-            fill-opacity: 0.55;
+            fill-opacity: 0.58;
             stroke: #000000;
-            stroke-opacity: 0.3;
-            stroke-width: 1px;
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: ${sideFontSize}px;
-            font-weight: 900;
-            letter-spacing: 5px;
-            text-transform: uppercase;
+            stroke-opacity: 0.35;
+            stroke-width: 1.5px;
           }
         </style>
-        <!-- Large Center Diagonal Watermark -->
-        <text
-          x="50%"
-          y="50%"
-          text-anchor="middle"
-          dominant-baseline="central"
-          transform="rotate(-25, ${width / 2}, ${height / 2})"
-          class="watermark-main"
-        >
-          MYCITYQUEEN
-        </text>
 
-        <!-- Right Side Middle Vertical Watermark -->
-        <text
-          x="${width - sideFontSize - 10}"
-          y="50%"
-          text-anchor="middle"
-          dominant-baseline="central"
-          transform="rotate(-90, ${width - sideFontSize - 10}, ${height / 2})"
-          class="watermark-side"
-        >
-          MYCITYQUEEN
-        </text>
+        <g transform="translate(${width / 2}, ${height / 2})">
+          <!-- Crown Logo Icon -->
+          <path class="crown-icon" transform="translate(-${fontSize * 3.3}, -${fontSize * 0.55}) scale(${fontSize / 28})" d="M2 22 L6 7 L12 15 L18 3 L24 15 L30 7 L34 22 Z" />
+          <!-- mycityqueen Text -->
+          <text x="${fontSize * 0.3}" y="2" text-anchor="middle" dominant-baseline="middle" class="watermark-center">
+            mycityqueen
+          </text>
+        </g>
       </svg>
     `;
 
