@@ -1,4 +1,5 @@
 import { EscortProfile } from '../models/EscortProfile.js';
+import { processProfileImages } from '../services/watermarkService.js';
 
 // Helper to map MongoDB doc to frontend-compatible shape
 const toFrontend = (doc) => ({
@@ -119,13 +120,16 @@ export const getEscortById = async (req, res) => {
 // ─────────────────────────────────────────────────────────
 export const createEscort = async (req, res) => {
   try {
-    const data = { ...req.body };
+    let data = { ...req.body };
 
     // ⚠️ Always strip skId and id from incoming payload — the pre-save hook
     // generates a guaranteed-unique skId.
     delete data.skId;
     delete data.id;
     delete data._mongoId;
+
+    // Apply global mandatory MyCityQueen server-side watermark to content images
+    data = await processProfileImages(data);
 
     // Advertiser post ads auto-approval
     const isAdminCreate = req.headers['x-admin-create'] === 'true';
@@ -153,7 +157,11 @@ export const updateEscort = async (req, res) => {
     if (!profile && id.length === 24) profile = await EscortProfile.findById(id);
     if (!profile) return res.status(404).json({ success: false, message: 'Profile not found.' });
 
-    const fields = req.body;
+    let fields = { ...req.body };
+
+    // Apply global mandatory MyCityQueen server-side watermark to updated content images
+    fields = await processProfileImages(fields);
+
     Object.keys(fields).forEach((k) => { profile[k] = fields[k]; });
     await profile.save();
     return res.status(200).json({ success: true, data: toFrontend(profile) });
@@ -269,7 +277,11 @@ export const seedDefaultProfiles = async (req, res) => {
       { skId: 'SK-106', name: 'Pooja Sharma', title: 'Pooja Sharma - Verified Independent Model', city: 'Jaipur', location: 'Jaipur (Vaishali Nagar)', category: 'Call Girls', age: 23, rating: 4.9, rate: '₹4,000 / hr', price: 4000, availability: 'Incall / Outcall Rates: ₹4,000 / hr (Night: ₹8,000 / night)', tags: ['Verified', 'Call Girl', 'Vaishali Nagar'], phone: '+91 98989 11223', whatsapp: '919898911223', photoUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80', gallery: ['https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=600&q=80'], description: 'Selfie verified independent model in Vaishali Nagar, Jaipur. Discrete & friendly service.', packageType: 'Verified Package 🛡️', isVerified: true, isVip: false, status: 'APPROVED' },
     ];
 
-    await EscortProfile.insertMany(defaults);
+    const watermarkedDefaults = await Promise.all(
+      defaults.map((d) => processProfileImages(d))
+    );
+
+    await EscortProfile.insertMany(watermarkedDefaults);
     return res.status(201).json({ success: true, message: `✅ Seeded ${defaults.length} default escort profiles into MongoDB.` });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });

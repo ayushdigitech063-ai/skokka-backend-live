@@ -9,7 +9,7 @@ export const sendEmail = async (options) => {
   const emailUser = process.env.EMAIL_USER || 'ayushdigitech063@gmail.com';
   const emailPass = process.env.EMAIL_PASS || 'jwbs pgcx uluj clwl';
   const senderEmail = process.env.FROM_EMAIL || emailUser;
-  const senderName = process.env.FROM_NAME || 'Skokka Enterprise Security';
+  const senderName = process.env.FROM_NAME || 'MyCityQueen Enterprise Security';
 
   console.log(`[EMAIL] 📧 Dispatching activation email via Gmail SMTP to ${options.email}...`);
 

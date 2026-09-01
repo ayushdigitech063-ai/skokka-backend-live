@@ -58,15 +58,15 @@ const dispatchActivationEmailAsync = (email) => {
 
   sendEmail({
     email,
-    subject: '🚀 Activate Your Skokka Classifieds Account',
+    subject: '🚀 Activate Your MyCityQueen Classifieds Account',
     message: `Click here to activate your account: ${activationUrl}`,
     html: `
       <div style="font-family: Arial, sans-serif; padding: 25px; background-color: #050B1F; color: #ffffff; border-radius: 16px;">
-        <h2 style="color: #d5639b; margin-bottom: 5px;">SKOKKA CLASSIFIEDS PORTAL</h2>
+        <h2 style="color: #d5639b; margin-bottom: 5px;">MYCITYQUEEN CLASSIFIEDS PORTAL</h2>
         <p style="color: #94a3b8; font-size: 14px;">Account Activation & Verification Request</p>
         <hr style="border-color: #1e293b; margin: 20px 0;" />
         <p>Hello <strong>${email.split('@')[0]}</strong>,</p>
-        <p>Thank you for registering on Skokka India. Please click the button below to complete your activation:</p>
+        <p>Thank you for registering on MyCityQueen India. Please click the button below to complete your activation:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${activationUrl}" style="background: #d5639b; color: #ffffff; padding: 14px 28px; font-size: 15px; font-weight: bold; text-decoration: none; border-radius: 30px; display: inline-block;">
             🚀 ACTIVATE ACCOUNT & ACCESS DASHBOARD
@@ -256,11 +256,11 @@ router.post('/forgot-password-send-otp', async (req, res) => {
     // Send email with OTP code
     await sendEmail({
       email: cleanEmail,
-      subject: '🔐 Your Password Reset Verification Code - Skokka',
+      subject: '🔐 Your Password Reset Verification Code - MyCityQueen',
       message: `Your password reset verification code is: ${otp}. It will expire in 10 minutes.`,
       html: `
         <div style="font-family: Arial, sans-serif; padding: 25px; background-color: #050B1F; color: #ffffff; border-radius: 16px; max-width: 500px; margin: auto;">
-          <h2 style="color: #d5639b; margin-bottom: 5px; text-align: center;">SKOKKA CLASSIFIEDS</h2>
+          <h2 style="color: #d5639b; margin-bottom: 5px; text-align: center;">MYCITYQUEEN CLASSIFIEDS</h2>
           <p style="color: #94a3b8; font-size: 14px; text-align: center;">Password Reset Request</p>
           <hr style="border-color: #1e293b; margin: 20px 0;" />
           <p>Hello <strong>${cleanEmail.split('@')[0]}</strong>,</p>

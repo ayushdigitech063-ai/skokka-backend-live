@@ -83,14 +83,14 @@ export const sendOtpService = async (admin) => {
   admin.otpExpire = otpExpire;
   await admin.save();
 
-  const message = `Your 6-Digit Skokka Admin Verification OTP is: ${otp}. This code is valid for 10 minutes.`;
+  const message = `Your 6-Digit MyCityQueen Admin Verification OTP is: ${otp}. This code is valid for 10 minutes.`;
   await sendEmail({
     email: admin.email,
-    subject: 'Skokka Admin First-Login OTP Verification',
+    subject: 'MyCityQueen Admin First-Login OTP Verification',
     message,
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #050B1F; color: #ffffff; border-radius: 12px;">
-        <h2 style="color: #f43f5e;">Skokka Admin Portal Security</h2>
+        <h2 style="color: #f43f5e;">MyCityQueen Admin Portal Security</h2>
         <p>Hello <strong>${admin.fullName}</strong>,</p>
         <p>Your 6-Digit Verification OTP for first-time login is:</p>
         <div style="font-size: 28px; font-weight: bold; color: #10b981; letter-spacing: 4px; padding: 15px; background: #0B1437; border-radius: 8px; text-align: center; margin: 15px 0;">

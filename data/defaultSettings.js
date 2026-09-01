@@ -1,6 +1,6 @@
 export const DEFAULT_AD_CMS_CONFIG = {
-  superAdminUpiId: "skokka@upi",
-  upiHolderName: "Skokka Official Concierge",
+  superAdminUpiId: "mycityqueen@upi",
+  upiHolderName: "MyCityQueen Official Concierge",
   verificationRequired: true,
   documentTypes: ["Aadhaar Card", "Passport", "Voter ID Card"],
   packages: [

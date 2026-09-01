@@ -5,6 +5,7 @@ dotenv.config();
 import app from "./app.js";
 import { connectDB } from "./config/db.js";
 import EscortProfile from "./models/EscortProfile.js";
+import { processProfileImages } from "./services/watermarkService.js";
 import { autoSeedLocations } from "./utils/seedLocations.js";
 import { autoSeedSuperAdmin } from "./utils/seedAdmin.js";
 
@@ -194,7 +195,11 @@ const autoSeedEscorts = async () => {
         },
       ];
 
-      await EscortProfile.insertMany(defaults);
+      const watermarkedDefaults = await Promise.all(
+        defaults.map((d) => processProfileImages(d))
+      );
+
+      await EscortProfile.insertMany(watermarkedDefaults);
 
       console.log("🌱 Default escort profiles auto-seeded into MongoDB Atlas.");
     } else {
