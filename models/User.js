@@ -26,6 +26,14 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: () => 'IN' + Math.random().toString(36).substring(2, 8).toUpperCase(),
     },
+    resetOtp: {
+      type: String,
+      default: null,
+    },
+    resetOtpExpires: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

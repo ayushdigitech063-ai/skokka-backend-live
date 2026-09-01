@@ -229,4 +229,132 @@ router.post('/activate-account', async (req, res) => {
   }
 });
 
+// 1. Send Reset OTP Route
+router.post('/forgot-password-send-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No registered account found with this email address. Please check your email or sign up.',
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetOtp = otp;
+    user.resetOtpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+    await user.save();
+
+    // Send email with OTP code
+    await sendEmail({
+      email: cleanEmail,
+      subject: '🔐 Your Password Reset Verification Code - Skokka',
+      message: `Your password reset verification code is: ${otp}. It will expire in 10 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 25px; background-color: #050B1F; color: #ffffff; border-radius: 16px; max-width: 500px; margin: auto;">
+          <h2 style="color: #d5639b; margin-bottom: 5px; text-align: center;">SKOKKA CLASSIFIEDS</h2>
+          <p style="color: #94a3b8; font-size: 14px; text-align: center;">Password Reset Request</p>
+          <hr style="border-color: #1e293b; margin: 20px 0;" />
+          <p>Hello <strong>${cleanEmail.split('@')[0]}</strong>,</p>
+          <p>You requested to reset your password. Please use the following 6-digit verification code to proceed:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <span style="background: #d5639b; color: #ffffff; padding: 14px 28px; font-size: 28px; font-weight: bold; letter-spacing: 6px; border-radius: 12px; display: inline-block;">
+              ${otp}
+            </span>
+          </div>
+          <p style="color: #94a3b8; font-size: 13px; text-align: center;">This code will expire in <strong>10 minutes</strong>. If you did not request this, please ignore this email.</p>
+        </div>
+      `,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Verification OTP has been sent to your email address.',
+    });
+  } catch (err) {
+    console.error('❌ Forgot password send OTP error:', err);
+    return res.status(500).json({ success: false, message: err.message || 'Failed to send OTP email.' });
+  }
+});
+
+// 2. Verify Reset OTP Route
+router.post('/verify-reset-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ success: false, message: 'Email and OTP are required.' });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanOtp = String(otp).trim();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Account not found.' });
+    }
+
+    if (!user.resetOtp || user.resetOtp !== cleanOtp) {
+      return res.status(400).json({ success: false, message: 'Invalid verification code. Please check and try again.' });
+    }
+
+    if (!user.resetOtpExpires || user.resetOtpExpires < new Date()) {
+      return res.status(400).json({ success: false, message: 'Verification code has expired. Please request a new code.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully.',
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3. Reset Password Route
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required.' });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanOtp = String(otp).trim();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Account not found.' });
+    }
+
+    if (!user.resetOtp || user.resetOtp !== cleanOtp) {
+      return res.status(400).json({ success: false, message: 'Invalid or unauthorized request.' });
+    }
+
+    if (!user.resetOtpExpires || user.resetOtpExpires < new Date()) {
+      return res.status(400).json({ success: false, message: 'Verification session has expired. Please restart the reset process.' });
+    }
+
+    // Set new password (pre-save hook will hash it)
+    user.password = newPassword;
+    user.resetOtp = null;
+    user.resetOtpExpires = null;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset successful! You can now log in with your new password.',
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;
