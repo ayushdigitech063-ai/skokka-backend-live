@@ -105,41 +105,36 @@ export async function applyWatermarkToImage(input) {
 
     // Calculate dynamic responsive font size based on image dimensions
     const minDim = Math.min(width, height);
-    const fontSize = Math.max(30, Math.round(minDim / 7));
+    const fontSize = Math.max(32, Math.round(minDim / 6.5));
 
-    // SVG Watermark Overlay matching exact reference image:
-    // Center horizontal watermark with crown logo icon + "mycityqueen" text
+    // SVG Watermark Overlay: Tilted (-18 deg) center "mycityqueen" text (no crown icon)
     const svgOverlay = `
       <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
         <style>
-          .watermark-center {
+          .watermark-tilted {
             fill: #ffffff;
-            fill-opacity: 0.58;
+            fill-opacity: 0.55;
             stroke: #000000;
             stroke-opacity: 0.35;
             stroke-width: 1.5px;
             font-family: Arial, Helvetica, sans-serif;
             font-size: ${fontSize}px;
-            font-weight: 800;
-            letter-spacing: 2px;
-          }
-          .crown-icon {
-            fill: #ffffff;
-            fill-opacity: 0.58;
-            stroke: #000000;
-            stroke-opacity: 0.35;
-            stroke-width: 1.5px;
+            font-weight: 900;
+            letter-spacing: 4px;
           }
         </style>
 
-        <g transform="translate(${width / 2}, ${height / 2})">
-          <!-- Crown Logo Icon -->
-          <path class="crown-icon" transform="translate(-${fontSize * 3.3}, -${fontSize * 0.55}) scale(${fontSize / 28})" d="M2 22 L6 7 L12 15 L18 3 L24 15 L30 7 L34 22 Z" />
-          <!-- mycityqueen Text -->
-          <text x="${fontSize * 0.3}" y="2" text-anchor="middle" dominant-baseline="middle" class="watermark-center">
-            mycityqueen
-          </text>
-        </g>
+        <!-- Center Tilted (-18deg) mycityqueen Text -->
+        <text
+          x="50%"
+          y="50%"
+          text-anchor="middle"
+          dominant-baseline="central"
+          transform="rotate(-18, ${width / 2}, ${height / 2})"
+          class="watermark-tilted"
+        >
+          mycityqueen
+        </text>
       </svg>
     `;
 
