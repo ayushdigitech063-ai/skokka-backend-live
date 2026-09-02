@@ -23,6 +23,8 @@ app.use(helmet());
 const allowedOrigins = [
   'https://skokka-website-frontend.vercel.app',
   'https://skokka-frontend.vercel.app',
+  'https://www.mycityqueen.com',
+  'https://mycityqueen.com',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
