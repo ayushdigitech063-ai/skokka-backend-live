@@ -6,8 +6,8 @@ import nodemailer from 'nodemailer';
  * Authenticates using process.env.EMAIL_USER & process.env.EMAIL_PASS
  */
 export const sendEmail = async (options) => {
-  const emailUser = process.env.EMAIL_USER || 'ayushdigitech063@gmail.com';
-  const emailPass = process.env.EMAIL_PASS || 'jwbs pgcx uluj clwl';
+  const emailUser = process.env.EMAIL_USER || 'info.mycityqueen@gmail.com';
+  const emailPass = process.env.EMAIL_PASS || 'lgpk hfcl citb ityx';
   const senderEmail = process.env.FROM_EMAIL || emailUser;
   const rawSenderName = process.env.FROM_NAME || 'MyCityQueen Enterprise Security';
   const senderName = rawSenderName.replace(/Skokka/gi, 'MyCityQueen');
