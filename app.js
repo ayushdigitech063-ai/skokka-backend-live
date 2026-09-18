@@ -101,11 +101,17 @@ app.use((req, res) => {
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('🔥 Global Server Error:', err.stack);
+  console.error('🔥 Global Server Error:', err.stack || err);
 
-  res.status(err.statusCode || 500).json({
+  const statusCode = err.status || err.statusCode || (err.type === 'entity.too.large' ? 413 : 500);
+  const message =
+    statusCode === 413
+      ? 'File size is too large. Maximum allowed size is 5 MB.'
+      : err.message || 'Internal Server Error';
+
+  res.status(statusCode).json({
     success: false,
-    message: err.message || 'Internal Server Error',
+    message,
     error: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
 });
