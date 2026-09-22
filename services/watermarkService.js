@@ -103,37 +103,37 @@ export async function applyWatermarkToImage(input) {
     const height = metadata.height || 1000;
     const format = metadata.format || 'jpeg';
 
-    // Calculate dynamic responsive font size based on image dimensions
+    // Calculate dynamic responsive font size (Sleek, small size matching third SS)
     const minDim = Math.min(width, height);
-    const fontSize = Math.max(32, Math.round(minDim / 6.5));
+    const fontSize = Math.max(16, Math.round(minDim / 15));
 
-    // SVG Watermark Overlay: Tilted (-18 deg) center "mycityqueen" text (no crown icon)
+    // SVG Watermark Overlay: Crisp Tilted (-18 deg) "MYCITYQUEEN" text
     const svgOverlay = `
       <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
         <style>
-          .watermark-tilted {
+          .watermark-text {
             fill: #ffffff;
-            fill-opacity: 0.55;
+            fill-opacity: 0.42;
             stroke: #000000;
-            stroke-opacity: 0.35;
-            stroke-width: 1.5px;
+            stroke-opacity: 0.25;
+            stroke-width: 0.8px;
             font-family: Arial, Helvetica, sans-serif;
             font-size: ${fontSize}px;
             font-weight: 900;
-            letter-spacing: 4px;
+            letter-spacing: 2px;
           }
         </style>
 
-        <!-- Center Tilted (-18deg) mycityqueen Text -->
+        <!-- Center Tilted (-18deg) MYCITYQUEEN Text -->
         <text
           x="50%"
           y="50%"
           text-anchor="middle"
           dominant-baseline="central"
           transform="rotate(-18, ${width / 2}, ${height / 2})"
-          class="watermark-tilted"
+          class="watermark-text"
         >
-          mycityqueen
+          MYCITYQUEEN
         </text>
       </svg>
     `;

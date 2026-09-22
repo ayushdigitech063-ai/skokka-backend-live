@@ -65,6 +65,11 @@ const EscortProfileSchema = new mongoose.Schema(
   }
 );
 
+// Compound index to support efficient sorting without hitting MongoDB 32MB in-memory sort limit
+EscortProfileSchema.index({ status: 1, isSuperTop: -1, isVip: -1, isVerified: -1, createdAt: -1 });
+EscortProfileSchema.index({ city: 1, status: 1 });
+EscortProfileSchema.index({ category: 1, status: 1 });
+
 // Auto-generate unique skId like SK-101 before saving
 EscortProfileSchema.pre('save', async function () {
   if (!this.skId || typeof this.skId !== 'string' || !this.skId.trim()) {

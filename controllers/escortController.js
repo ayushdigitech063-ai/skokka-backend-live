@@ -3,8 +3,8 @@ import { processProfileImages } from '../services/watermarkService.js';
 
 // Helper to map MongoDB doc to frontend-compatible shape
 const toFrontend = (doc) => ({
-  id: doc.skId || doc._id.toString(),
-  _mongoId: doc._id.toString(),
+  id: doc.skId || doc._id?.toString() || "",
+  _mongoId: doc._id?.toString() || "",
   name: doc.name,
   title: doc.title || doc.name,
   city: doc.city,
@@ -45,9 +45,12 @@ export const getPublicEscorts = async (req, res) => {
     if (vip === 'true') filter.isVip = true;
     if (verified === 'true') { filter.isVerified = true; filter.isVip = false; }
 
-    const profiles = await EscortProfile.find(filter).sort({ isSuperTop: -1, isVip: -1, isVerified: -1, createdAt: -1 });
+    const profiles = await EscortProfile.find(filter)
+      .sort({ isSuperTop: -1, isVip: -1, isVerified: -1, createdAt: -1 })
+      .lean();
     return res.status(200).json({ success: true, count: profiles.length, data: profiles.map(toFrontend) });
   } catch (err) {
+    console.error("🔥 Error in getPublicEscorts:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
