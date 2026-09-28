@@ -1,6 +1,36 @@
 import { EscortProfile } from '../models/EscortProfile.js';
 import { processProfileImages } from '../services/watermarkService.js';
 
+// Helper to map MongoDB doc to full frontend shape (for single profile & admin panel)
+const toFrontend = (doc) => ({
+  id: doc.skId || doc._id?.toString() || "",
+  _mongoId: doc._id?.toString() || "",
+  name: doc.name,
+  title: doc.title || doc.name,
+  city: doc.city,
+  location: doc.location,
+  category: doc.category,
+  age: doc.age,
+  rating: doc.rating,
+  rate: doc.rate,
+  price: doc.price,
+  availability: doc.availability,
+  tags: doc.tags || [],
+  phone: doc.phone,
+  whatsapp: doc.whatsapp,
+  telegram: doc.telegram || doc.whatsapp || doc.phone,
+  photoUrl: doc.photoUrl,
+  gallery: doc.gallery || [],
+  description: doc.description,
+  packageType: doc.packageType,
+  isVerified: doc.isVerified,
+  isVip: doc.isVip,
+  isSuperTop: doc.isSuperTop || doc.packageType === "SUPER_TOP" || doc.packageType?.includes("SUPER_TOP") || false,
+  status: doc.status,
+  submittedAt: doc.createdAt,
+  submittedBy: doc.submittedBy,
+});
+
 // Helper to map MongoDB doc to public frontend listing shape (lightweight)
 const toPublicFrontend = (doc) => ({
   id: doc.skId || doc._id?.toString() || "",
