@@ -79,7 +79,7 @@ export const getPublicEscorts = async (req, res) => {
     if (verified === 'true') { filter.isVerified = true; filter.isVip = false; }
 
     const profiles = await EscortProfile.find(filter)
-      .select('-photoUrl -gallery')
+      .select('-gallery')
       .sort({ createdAt: -1 })
       .lean();
     return res.status(200).json({ success: true, count: profiles.length, data: profiles.map(toPublicFrontend) });
