@@ -1,8 +1,8 @@
 import { EscortProfile } from '../models/EscortProfile.js';
 import { processProfileImages } from '../services/watermarkService.js';
 
-// Helper to map MongoDB doc to frontend-compatible shape
-const toFrontend = (doc) => ({
+// Helper to map MongoDB doc to public frontend listing shape (lightweight)
+const toPublicFrontend = (doc) => ({
   id: doc.skId || doc._id?.toString() || "",
   _mongoId: doc._id?.toString() || "",
   name: doc.name,
@@ -19,8 +19,11 @@ const toFrontend = (doc) => ({
   phone: doc.phone,
   whatsapp: doc.whatsapp,
   telegram: doc.telegram || doc.whatsapp || doc.phone,
-  photoUrl: doc.photoUrl,
-  gallery: doc.gallery || [],
+  photoUrl:
+    typeof doc.photoUrl === 'string' && !doc.photoUrl.startsWith('data:')
+      ? doc.photoUrl
+      : null,
+  gallery: [],
   description: doc.description,
   packageType: doc.packageType,
   isVerified: doc.isVerified,
@@ -46,9 +49,10 @@ export const getPublicEscorts = async (req, res) => {
     if (verified === 'true') { filter.isVerified = true; filter.isVip = false; }
 
     const profiles = await EscortProfile.find(filter)
+      .select('-gallery')
       .sort({ isSuperTop: -1, isVip: -1, isVerified: -1, createdAt: -1 })
       .lean();
-    return res.status(200).json({ success: true, count: profiles.length, data: profiles.map(toFrontend) });
+    return res.status(200).json({ success: true, count: profiles.length, data: profiles.map(toPublicFrontend) });
   } catch (err) {
     console.error("🔥 Error in getPublicEscorts:", err);
     return res.status(500).json({ success: false, message: err.message });
