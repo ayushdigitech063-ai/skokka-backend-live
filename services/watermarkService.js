@@ -115,51 +115,96 @@ export async function applyWatermarkToImage(input) {
 
     const width = metadata.width || 800;
     const height = metadata.height || 1000;
-    const format = metadata.format || 'jpeg';
 
-    // Calculate dynamic responsive font size (Sleek, small size matching third SS)
+    // ── Smaller font size (was minDim/15, now minDim/25) ──
     const minDim = Math.min(width, height);
-    const fontSize = Math.max(16, Math.round(minDim / 15));
+    const fontSize = Math.max(11, Math.round(minDim / 25));
+    const logoSize = Math.max(18, Math.round(fontSize * 1.6));
 
-    // SVG Watermark Overlay: Crisp Tilted (-18 deg) "MYCITYQUEEN" text
+    // ── Load & resize MyCityQueen logo as PNG buffer ──
+    // Try multiple paths (local dev vs production server layout)
+    const logoPaths = [
+      path.join(__dirname, '..', '..', 'frontend', 'public', 'logo.png'),
+      path.join(__dirname, '..', 'public', 'logo.png'),
+      '/home/deploy/apps/mycityqueen/frontend/public/logo.png',
+      '/home/deploy/apps/mycityqueen/frontend/.next/static/media/logo.png',
+    ];
+    let logoBuffer = null;
+    for (const lp of logoPaths) {
+      try {
+        if (fs.existsSync(lp)) {
+          logoBuffer = await sharp(lp)
+            .resize(logoSize, logoSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+            .png()
+            .toBuffer();
+          break;
+        }
+      } catch (logoErr) {
+        console.warn('[WATERMARK] Could not load logo from', lp, ':', logoErr.message);
+      }
+    }
+
+    // ── SVG text watermark (smaller, positioned right of logo) ──
+    const textOffsetX = logoBuffer ? Math.round(logoSize / 2) + 6 : 0;
     const svgOverlay = `
       <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
         <style>
-          .watermark-text {
+          .wm-text {
             fill: #ffffff;
-            fill-opacity: 0.42;
+            fill-opacity: 0.35;
             stroke: #000000;
-            stroke-opacity: 0.25;
-            stroke-width: 0.8px;
+            stroke-opacity: 0.15;
+            stroke-width: 0.5px;
             font-family: Arial, Helvetica, sans-serif;
             font-size: ${fontSize}px;
-            font-weight: 900;
-            letter-spacing: 2px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
           }
         </style>
-
-        <!-- Center Tilted (-18deg) MYCITYQUEEN Text -->
         <text
-          x="50%"
-          y="50%"
+          x="${Math.round(width / 2) + textOffsetX}"
+          y="${Math.round(height / 2) + Math.round(fontSize / 3)}"
           text-anchor="middle"
           dominant-baseline="central"
           transform="rotate(-18, ${width / 2}, ${height / 2})"
-          class="watermark-text"
+          class="wm-text"
         >
           MYCITYQUEEN
         </text>
       </svg>
     `;
 
+    // ── Build composite layers: logo (left of center) + text SVG ──
+    const compositeLayers = [];
+
+    // 1. Logo overlay (semi-transparent, positioned left-of-center, rotated area)
+    if (logoBuffer) {
+      const logoLeft = Math.round(width / 2) - Math.round(logoSize / 2) - textOffsetX - Math.round(fontSize * 2.5);
+      const logoTop = Math.round(height / 2) - Math.round(logoSize / 2);
+      compositeLayers.push({
+        input: await sharp(logoBuffer)
+          .ensureAlpha()
+          .modulate({ brightness: 1.2 })
+          .composite([{
+            input: Buffer.from(`<svg width="${logoSize}" height="${logoSize}"><rect width="100%" height="100%" fill-opacity="0" /><rect width="100%" height="100%" fill="white" fill-opacity="0.35" /></svg>`),
+            blend: 'dest-in',
+          }])
+          .png()
+          .toBuffer(),
+        top: Math.max(0, logoTop),
+        left: Math.max(0, logoLeft),
+      });
+    }
+
+    // 2. Text SVG overlay
+    compositeLayers.push({
+      input: Buffer.from(svgOverlay),
+      top: 0,
+      left: 0,
+    });
+
     // Composite overlay with Sharp
-    let pipeline = sharp(inputBuffer).composite([
-      {
-        input: Buffer.from(svgOverlay),
-        top: 0,
-        left: 0,
-      },
-    ]);
+    let pipeline = sharp(inputBuffer).composite(compositeLayers);
 
     // Attach watermark marker comment to prevent double-watermarking on re-saves
     pipeline = pipeline.withMetadata({
