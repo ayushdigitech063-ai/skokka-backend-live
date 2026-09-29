@@ -1,4 +1,11 @@
 import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Global Centralized Watermark Processing Service for MyCityQueen
@@ -15,6 +22,13 @@ import sharp from 'sharp';
 
 // Internal marker to prevent re-watermarking already processed images
 const WATERMARK_MARKER = 'mcq_watermarked_v1';
+
+// Uploads directory for saving watermarked images as static files
+const UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads', 'escorts');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+const PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mycityqueen.com/x';
 
 /**
  * Helper to convert various image input types (Base64 Data URL, HTTP URL, Buffer) into a Buffer
@@ -156,21 +170,19 @@ export async function applyWatermarkToImage(input) {
       },
     });
 
-    let outputBuffer;
-    let mimeType = 'image/jpeg';
+    // Always output as optimized WebP for storage efficiency
+    const outputBuffer = await pipeline
+      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 85 })
+      .toBuffer();
 
-    if (format === 'png') {
-      outputBuffer = await pipeline.png().toBuffer();
-      mimeType = 'image/png';
-    } else if (format === 'webp') {
-      outputBuffer = await pipeline.webp().toBuffer();
-      mimeType = 'image/webp';
-    } else {
-      outputBuffer = await pipeline.jpeg({ quality: 90 }).toBuffer();
-      mimeType = 'image/jpeg';
-    }
+    // Save to disk and return HTTP URL (never store base64 in MongoDB)
+    const hash = crypto.randomBytes(8).toString('hex');
+    const filename = `wm_${Date.now()}_${hash}.webp`;
+    const filepath = path.join(UPLOADS_DIR, filename);
+    fs.writeFileSync(filepath, outputBuffer);
 
-    return `data:${mimeType};base64,${outputBuffer.toString('base64')}`;
+    return `${PUBLIC_BASE_URL}/uploads/escorts/${filename}`;
   } catch (err) {
     console.error('[WATERMARK] ❌ Error applying watermark to image:', err.message);
     // Return original input if non-critical processing error
