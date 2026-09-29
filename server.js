@@ -8,7 +8,111 @@ import EscortProfile from "./models/EscortProfile.js";
 import { processProfileImages } from "./services/watermarkService.js";
 import { autoSeedLocations } from "./utils/seedLocations.js";
 import { autoSeedSuperAdmin } from "./utils/seedAdmin.js";
+import fs from "fs";
+import path from "path";
+import sharp from "sharp";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const UPLOADS_DIR = path.join(__dirname, "public", "uploads", "escorts");
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+const PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://mycityqueen.com/x";
+
+/**
+ * Auto-migrate base64 images to WebP files on disk.
+ * Runs in background on every server startup — safe to re-run (idempotent).
+ */
+const autoMigrateBase64Images = async () => {
+  try {
+    const profiles = await EscortProfile.find({
+      $or: [
+        { photoUrl: { $regex: /^data:image\//i } },
+        { gallery: { $elemMatch: { $regex: /^data:image\//i } } },
+      ],
+    });
+
+    if (profiles.length === 0) {
+      console.log("✅ No base64 images to migrate — all clean.");
+      return;
+    }
+
+    console.log(`🔄 Auto-migrating ${profiles.length} profiles with base64 images...`);
+    let updated = 0;
+
+    for (const doc of profiles) {
+      let modified = false;
+
+      // Convert photoUrl
+      if (doc.photoUrl && typeof doc.photoUrl === "string" && doc.photoUrl.startsWith("data:image/")) {
+        try {
+          const parts = doc.photoUrl.split(";base64,");
+          if (parts.length === 2) {
+            const buf = Buffer.from(parts[1], "base64");
+            const hash = crypto.randomBytes(8).toString("hex");
+            const fname = `mig_${doc.skId || doc._id}_cover_${hash}.webp`;
+            await sharp(buf)
+              .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
+              .webp({ quality: 85 })
+              .toFile(path.join(UPLOADS_DIR, fname));
+            doc.photoUrl = `${PUBLIC_BASE_URL}/uploads/escorts/${fname}`;
+            modified = true;
+          }
+        } catch (imgErr) {
+          console.warn(`  ⚠️ Could not convert photoUrl for ${doc.skId}:`, imgErr.message);
+        }
+      }
+
+      // Convert gallery items
+      if (Array.isArray(doc.gallery) && doc.gallery.length > 0) {
+        const newGallery = [];
+        for (let i = 0; i < doc.gallery.length; i++) {
+          const item = doc.gallery[i];
+          if (item && typeof item === "string" && item.startsWith("data:image/")) {
+            try {
+              const parts = item.split(";base64,");
+              if (parts.length === 2) {
+                const buf = Buffer.from(parts[1], "base64");
+                const hash = crypto.randomBytes(8).toString("hex");
+                const fname = `mig_${doc.skId || doc._id}_g${i}_${hash}.webp`;
+                await sharp(buf)
+                  .resize(1200, 1200, { fit: "inside", withoutEnlargement: true })
+                  .webp({ quality: 85 })
+                  .toFile(path.join(UPLOADS_DIR, fname));
+                newGallery.push(`${PUBLIC_BASE_URL}/uploads/escorts/${fname}`);
+                modified = true;
+              } else {
+                newGallery.push(item);
+              }
+            } catch (imgErr) {
+              console.warn(`  ⚠️ Could not convert gallery[${i}] for ${doc.skId}:`, imgErr.message);
+              newGallery.push(item);
+            }
+          } else {
+            newGallery.push(item);
+          }
+        }
+        doc.gallery = newGallery;
+      }
+
+      if (modified) {
+        doc.markModified("photoUrl");
+        doc.markModified("gallery");
+        await doc.save();
+        updated++;
+        console.log(`  ✅ Migrated: ${doc.skId || doc._id} (${doc.name})`);
+      }
+    }
+
+    console.log(`🎉 Auto-migration done! ${updated}/${profiles.length} profiles updated.`);
+  } catch (err) {
+    console.error("❌ Auto-migration error:", err.message);
+  }
+};
 // Render provides process.env.PORT automatically.
 // Local development will use 4000 if PORT is not defined.
 const PORT = process.env.PORT || 4000;
@@ -217,6 +321,9 @@ connectDB()
       await autoSeedEscorts();
       await autoSeedLocations();
       await autoSeedSuperAdmin();
+
+      // Auto-migrate any remaining base64 images to file URLs (runs in background)
+      autoMigrateBase64Images().catch((e) => console.error("Migration bg error:", e.message));
 
       const server = app.listen(PORT, "0.0.0.0", () => {
         console.log("========================================");
