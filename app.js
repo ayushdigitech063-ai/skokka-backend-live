@@ -54,16 +54,7 @@ app.use(
   })
 );
 
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again after 5 minutes.',
-  },
-});
-app.use('/api', limiter);
+// Rate Limiting Removed
 
 // API Request Console Logger Middleware
 app.use((req, res, next) => {
