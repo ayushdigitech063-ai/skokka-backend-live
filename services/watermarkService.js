@@ -180,15 +180,10 @@ export async function applyWatermarkToImage(input) {
     // 1. Logo overlay (semi-transparent, positioned left-of-center, rotated area)
     if (logoBuffer) {
       const logoLeft = Math.round(width / 2) - Math.round(logoSize / 2) - textOffsetX - Math.round(fontSize * 2.5);
-      const logoTop = Math.round(height / 2) - Math.round(logoSize / 2);
+      const logoTop = Math.round(height / 2) - Math.round(logoSize / 2) - Math.round(logoSize / 3);
       compositeLayers.push({
         input: await sharp(logoBuffer)
           .ensureAlpha()
-          .modulate({ brightness: 1.2 })
-          .composite([{
-            input: Buffer.from(`<svg width="${logoSize}" height="${logoSize}"><rect width="100%" height="100%" fill-opacity="0" /><rect width="100%" height="100%" fill="white" fill-opacity="0.35" /></svg>`),
-            blend: 'dest-in',
-          }])
           .png()
           .toBuffer(),
         top: Math.max(0, logoTop),
