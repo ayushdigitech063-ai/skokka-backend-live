@@ -14,14 +14,29 @@ import { generateSlug } from '../utils/slugify.js';
  */
 export const createState = async (req, res) => {
   try {
-    const { name, code, sortOrder, metaTitle, metaDescription, isActive } = req.body;
+    const {
+      name,
+      code,
+      sortOrder,
+      metaTitle,
+      metaDescription,
+      customSlug,
+      focusKeywords,
+      ogImage,
+      ogTitle,
+      ogDescription,
+      popularDistricts,
+      faqs,
+      isActive,
+    } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: 'State name is required' });
     }
 
     const cleanName = name.trim();
-    const slug = generateSlug(cleanName);
+    const cleanCustomSlug = customSlug && typeof customSlug === 'string' ? customSlug.trim() : '';
+    const slug = cleanCustomSlug ? generateSlug(cleanCustomSlug) : generateSlug(cleanName);
 
     // Check duplicate state name or slug among non-deleted states
     const existing = await State.findOne({
@@ -32,17 +47,45 @@ export const createState = async (req, res) => {
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: `State with name or slug '${cleanName}' already exists`,
+        message: `State with name '${cleanName}' or slug '${slug}' already exists`,
       });
     }
+
+    const formattedKeywords = Array.isArray(focusKeywords)
+      ? focusKeywords.map((k) => String(k).trim()).filter(Boolean)
+      : typeof focusKeywords === 'string'
+      ? focusKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+      : [];
+
+    const formattedDistricts = Array.isArray(popularDistricts)
+      ? popularDistricts.map((d) => String(d).trim()).filter(Boolean)
+      : typeof popularDistricts === 'string'
+      ? popularDistricts.split(',').map((d) => d.trim()).filter(Boolean)
+      : [];
+
+    const formattedFaqs = Array.isArray(faqs)
+      ? faqs
+          .map((f) => ({
+            question: String(f.question || '').trim(),
+            answer: String(f.answer || '').trim(),
+          }))
+          .filter((f) => f.question || f.answer)
+      : [];
 
     const state = await State.create({
       name: cleanName,
       code: code ? code.trim().toUpperCase() : '',
       slug,
+      customSlug: cleanCustomSlug,
       sortOrder: sortOrder || 0,
       metaTitle: metaTitle || '',
       metaDescription: metaDescription || '',
+      focusKeywords: formattedKeywords,
+      ogImage: ogImage ? String(ogImage).trim() : '',
+      ogTitle: ogTitle ? String(ogTitle).trim() : '',
+      ogDescription: ogDescription ? String(ogDescription).trim() : '',
+      popularDistricts: formattedDistricts,
+      faqs: formattedFaqs,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     });
 
@@ -105,7 +148,16 @@ export const getStateById = async (req, res) => {
     const { idOrSlug } = req.params;
     const isObjectId = idOrSlug.match(/^[0-9a-fA-F]{24}$/);
 
-    const query = isObjectId ? { _id: idOrSlug } : { slug: idOrSlug };
+    const query = isObjectId
+      ? { _id: idOrSlug }
+      : {
+          $or: [
+            { slug: idOrSlug.toLowerCase() },
+            { customSlug: idOrSlug.toLowerCase() },
+            { name: { $regex: new RegExp(`^${idOrSlug.replace(/-/g, ' ')}$`, 'i') } },
+            { name: { $regex: new RegExp(`^${idOrSlug}$`, 'i') } },
+          ],
+        };
     query.isDeleted = false;
 
     const state = await State.findOne(query).populate({
@@ -131,16 +183,55 @@ export const getStateById = async (req, res) => {
 export const updateState = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, sortOrder, metaTitle, metaDescription, isActive } = req.body;
+    const {
+      name,
+      code,
+      sortOrder,
+      metaTitle,
+      metaDescription,
+      customSlug,
+      focusKeywords,
+      ogImage,
+      ogTitle,
+      ogDescription,
+      popularDistricts,
+      faqs,
+      isActive,
+    } = req.body;
 
     const state = await State.findOne({ _id: id, isDeleted: false });
     if (!state) {
       return res.status(404).json({ success: false, message: 'State not found' });
     }
 
+    // Handle Custom Slug or Name Slug
+    if (customSlug !== undefined) {
+      const cleanCustomSlug = typeof customSlug === 'string' ? customSlug.trim() : '';
+      state.customSlug = cleanCustomSlug;
+      if (cleanCustomSlug) {
+        const newSlug = generateSlug(cleanCustomSlug);
+        const duplicate = await State.findOne({
+          _id: { $ne: id },
+          slug: newSlug,
+          isDeleted: false,
+        });
+        if (duplicate) {
+          return res.status(400).json({
+            success: false,
+            message: `A state with slug '${newSlug}' already exists`,
+          });
+        }
+        state.slug = newSlug;
+      } else if (name && name.trim()) {
+        state.slug = generateSlug(name.trim());
+      } else {
+        state.slug = generateSlug(state.name);
+      }
+    }
+
     if (name && name.trim() !== state.name) {
       const cleanName = name.trim();
-      const newSlug = generateSlug(cleanName);
+      const newSlug = state.customSlug ? generateSlug(state.customSlug) : generateSlug(cleanName);
 
       const duplicate = await State.findOne({
         _id: { $ne: id },
@@ -151,18 +242,51 @@ export const updateState = async (req, res) => {
       if (duplicate) {
         return res.status(400).json({
           success: false,
-          message: `State with name '${cleanName}' already exists`,
+          message: `State with name '${cleanName}' or slug '${newSlug}' already exists`,
         });
       }
 
       state.name = cleanName;
-      state.slug = newSlug;
+      if (!state.customSlug) {
+        state.slug = newSlug;
+      }
     }
 
     if (code !== undefined) state.code = code.trim().toUpperCase();
     if (sortOrder !== undefined) state.sortOrder = Number(sortOrder);
     if (metaTitle !== undefined) state.metaTitle = metaTitle;
     if (metaDescription !== undefined) state.metaDescription = metaDescription;
+    if (ogImage !== undefined) state.ogImage = String(ogImage || '').trim();
+    if (ogTitle !== undefined) state.ogTitle = String(ogTitle || '').trim();
+    if (ogDescription !== undefined) state.ogDescription = String(ogDescription || '').trim();
+
+    if (focusKeywords !== undefined) {
+      state.focusKeywords = Array.isArray(focusKeywords)
+        ? focusKeywords.map((k) => String(k).trim()).filter(Boolean)
+        : typeof focusKeywords === 'string'
+        ? focusKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+        : [];
+    }
+
+    if (popularDistricts !== undefined) {
+      state.popularDistricts = Array.isArray(popularDistricts)
+        ? popularDistricts.map((d) => String(d).trim()).filter(Boolean)
+        : typeof popularDistricts === 'string'
+        ? popularDistricts.split(',').map((d) => d.trim()).filter(Boolean)
+        : [];
+    }
+
+    if (faqs !== undefined) {
+      state.faqs = Array.isArray(faqs)
+        ? faqs
+            .map((f) => ({
+              question: String(f.question || '').trim(),
+              answer: String(f.answer || '').trim(),
+            }))
+            .filter((f) => f.question || f.answer)
+        : [];
+    }
+
     if (isActive !== undefined) state.isActive = Boolean(isActive);
 
     await state.save();

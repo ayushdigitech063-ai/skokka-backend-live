@@ -55,6 +55,8 @@ router.get('/areas/:idOrSlug', getAreaById);
 // State Admin Routes
 router.post('/states', protect, authorizeRoles('super_admin', 'admin'), createState);
 router.put('/states/:id', protect, authorizeRoles('super_admin', 'admin'), updateState);
+router.put('/states/:id/seo', protect, authorizeRoles('super_admin', 'admin'), updateState);
+router.patch('/states/:id/seo', protect, authorizeRoles('super_admin', 'admin'), updateState);
 router.delete('/states/:id', protect, authorizeRoles('super_admin', 'admin'), deleteState);
 router.patch('/states/:id/status', protect, authorizeRoles('super_admin', 'admin'), toggleStateStatus);
 
