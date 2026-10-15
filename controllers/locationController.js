@@ -2,6 +2,19 @@ import State from '../models/State.js';
 import City from '../models/City.js';
 import Area from '../models/Area.js';
 import { generateSlug } from '../utils/slugify.js';
+import fs from 'fs';
+import path from 'path';
+import sharp from 'sharp';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const SEO_UPLOADS_DIR = path.join(__dirname, '..', 'public', 'uploads', 'seo');
+if (!fs.existsSync(SEO_UPLOADS_DIR)) {
+  fs.mkdirSync(SEO_UPLOADS_DIR, { recursive: true });
+}
+const PUBLIC_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mycityqueen.com/x';
 
 // ==========================================
 // STATE CONTROLLERS
@@ -1143,3 +1156,52 @@ export const autoRegisterLocation = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+/**
+ * @desc    Upload & Optimize Social Preview / SEO Banner Image (1200x630 WebP)
+ * @route   POST /api/locations/upload-banner
+ * @access  Private/Admin
+ */
+export const uploadSeoBanner = async (req, res) => {
+  try {
+    const { image } = req.body;
+    if (!image || typeof image !== 'string') {
+      return res.status(400).json({ success: false, message: 'Image data URL is required' });
+    }
+
+    if (!image.startsWith('data:image/')) {
+      if (image.startsWith('http')) {
+        return res.status(200).json({ success: true, url: image });
+      }
+      return res.status(400).json({ success: false, message: 'Invalid image format. Expected data URL.' });
+    }
+
+    const parts = image.split(';base64,');
+    if (parts.length !== 2) {
+      return res.status(400).json({ success: false, message: 'Invalid base64 image data' });
+    }
+
+    const buffer = Buffer.from(parts[1], 'base64');
+    const hash = crypto.randomBytes(8).toString('hex');
+    const filename = `seo_banner_${Date.now()}_${hash}.webp`;
+    const filepath = path.join(SEO_UPLOADS_DIR, filename);
+
+    // Resize to recommended Open Graph size 1200x630, webp format, high quality
+    await sharp(buffer)
+      .resize(1200, 630, { fit: 'cover', position: 'center' })
+      .webp({ quality: 85 })
+      .toFile(filepath);
+
+    const publicUrl = `${PUBLIC_BASE_URL}/uploads/seo/${filename}`;
+
+    res.status(200).json({
+      success: true,
+      message: 'Banner uploaded and optimized for Social Sharing (1200x630 WebP)',
+      url: publicUrl,
+    });
+  } catch (err) {
+    console.error('Error uploading SEO banner:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
