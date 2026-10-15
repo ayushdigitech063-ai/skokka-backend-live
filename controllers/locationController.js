@@ -39,6 +39,7 @@ export const createState = async (req, res) => {
       ogTitle,
       ogDescription,
       popularDistricts,
+      pageContent,
       faqs,
       isActive,
     } = req.body;
@@ -98,6 +99,7 @@ export const createState = async (req, res) => {
       ogTitle: ogTitle ? String(ogTitle).trim() : '',
       ogDescription: ogDescription ? String(ogDescription).trim() : '',
       popularDistricts: formattedDistricts,
+      pageContent: pageContent ? String(pageContent).trim() : '',
       faqs: formattedFaqs,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     });
@@ -208,6 +210,7 @@ export const updateState = async (req, res) => {
       ogTitle,
       ogDescription,
       popularDistricts,
+      pageContent,
       faqs,
       isActive,
     } = req.body;
@@ -272,6 +275,7 @@ export const updateState = async (req, res) => {
     if (ogImage !== undefined) state.ogImage = String(ogImage || '').trim();
     if (ogTitle !== undefined) state.ogTitle = String(ogTitle || '').trim();
     if (ogDescription !== undefined) state.ogDescription = String(ogDescription || '').trim();
+    if (pageContent !== undefined) state.pageContent = String(pageContent || '').trim();
 
     if (focusKeywords !== undefined) {
       state.focusKeywords = Array.isArray(focusKeywords)
@@ -397,6 +401,7 @@ export const createCity = async (req, res) => {
       ogTitle,
       ogDescription,
       microServiceAreas,
+      pageContent,
       faqs,
       isActive,
     } = req.body;
@@ -470,6 +475,7 @@ export const createCity = async (req, res) => {
       ogTitle: ogTitle ? String(ogTitle).trim() : '',
       ogDescription: ogDescription ? String(ogDescription).trim() : '',
       microServiceAreas: formattedAreas,
+      pageContent: pageContent ? String(pageContent).trim() : '',
       faqs: formattedFaqs,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     });
@@ -593,6 +599,7 @@ export const updateCity = async (req, res) => {
       ogTitle,
       ogDescription,
       microServiceAreas,
+      pageContent,
       faqs,
       isActive,
     } = req.body;
@@ -670,6 +677,7 @@ export const updateCity = async (req, res) => {
     if (ogImage !== undefined) city.ogImage = String(ogImage || '').trim();
     if (ogTitle !== undefined) city.ogTitle = String(ogTitle || '').trim();
     if (ogDescription !== undefined) city.ogDescription = String(ogDescription || '').trim();
+    if (pageContent !== undefined) city.pageContent = String(pageContent || '').trim();
 
     if (focusKeywords !== undefined) {
       city.focusKeywords = Array.isArray(focusKeywords)

@@ -81,6 +81,11 @@ const CitySchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    pageContent: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     faqs: [
       {
         question: {
