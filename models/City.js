@@ -53,6 +53,48 @@ const CitySchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    customSlug: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    focusKeywords: {
+      type: [String],
+      default: [],
+    },
+    ogImage: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    ogTitle: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    ogDescription: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    microServiceAreas: {
+      type: [String],
+      default: [],
+    },
+    faqs: [
+      {
+        question: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+        answer: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+      },
+    ],
   },
   {
     timestamps: true,
@@ -67,7 +109,9 @@ CitySchema.index({ slug: 1, stateId: 1 }, { unique: true });
 
 // Auto-generate slug before validation
 CitySchema.pre('validate', function () {
-  if (this.isModified('name') || !this.slug) {
+  if (this.customSlug && this.customSlug.trim()) {
+    this.slug = generateSlug(this.customSlug.trim());
+  } else if (!this.slug || (this.isModified('name') && !this.isModified('slug'))) {
     this.slug = generateSlug(this.name);
   }
 });

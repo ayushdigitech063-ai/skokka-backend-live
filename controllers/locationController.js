@@ -246,7 +246,23 @@ export const toggleStateStatus = async (req, res) => {
  */
 export const createCity = async (req, res) => {
   try {
-    const { name, stateId, tier, isPopular, sortOrder, metaTitle, metaDescription, isActive } = req.body;
+    const {
+      name,
+      stateId,
+      tier,
+      isPopular,
+      sortOrder,
+      metaTitle,
+      metaDescription,
+      customSlug,
+      focusKeywords,
+      ogImage,
+      ogTitle,
+      ogDescription,
+      microServiceAreas,
+      faqs,
+      isActive,
+    } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: 'City name is required' });
@@ -261,7 +277,8 @@ export const createCity = async (req, res) => {
     }
 
     const cleanName = name.trim();
-    const slug = generateSlug(cleanName);
+    const cleanCustomSlug = customSlug && typeof customSlug === 'string' ? customSlug.trim() : '';
+    const slug = cleanCustomSlug ? generateSlug(cleanCustomSlug) : generateSlug(cleanName);
 
     // Prevent duplicate city in the same state
     const existing = await City.findOne({
@@ -273,19 +290,50 @@ export const createCity = async (req, res) => {
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: `City '${cleanName}' already exists in state '${state.name}'`,
+        message: `City '${cleanName}' or slug '${slug}' already exists in state '${state.name}'`,
       });
     }
+
+    // Format keywords
+    const formattedKeywords = Array.isArray(focusKeywords)
+      ? focusKeywords.map((k) => String(k).trim()).filter(Boolean)
+      : typeof focusKeywords === 'string'
+      ? focusKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+      : [];
+
+    // Format micro service areas
+    const formattedAreas = Array.isArray(microServiceAreas)
+      ? microServiceAreas.map((a) => String(a).trim()).filter(Boolean)
+      : typeof microServiceAreas === 'string'
+      ? microServiceAreas.split(',').map((a) => a.trim()).filter(Boolean)
+      : [];
+
+    // Format FAQs
+    const formattedFaqs = Array.isArray(faqs)
+      ? faqs
+          .map((f) => ({
+            question: String(f.question || '').trim(),
+            answer: String(f.answer || '').trim(),
+          }))
+          .filter((f) => f.question || f.answer)
+      : [];
 
     const city = await City.create({
       name: cleanName,
       stateId,
       slug,
+      customSlug: cleanCustomSlug,
       tier: tier || 'Tier 2',
       isPopular: isPopular !== undefined ? Boolean(isPopular) : false,
       sortOrder: sortOrder || 0,
       metaTitle: metaTitle || '',
       metaDescription: metaDescription || '',
+      focusKeywords: formattedKeywords,
+      ogImage: ogImage ? String(ogImage).trim() : '',
+      ogTitle: ogTitle ? String(ogTitle).trim() : '',
+      ogDescription: ogDescription ? String(ogDescription).trim() : '',
+      microServiceAreas: formattedAreas,
+      faqs: formattedFaqs,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     });
 
@@ -357,7 +405,16 @@ export const getCityById = async (req, res) => {
     const { idOrSlug } = req.params;
     const isObjectId = idOrSlug.match(/^[0-9a-fA-F]{24}$/);
 
-    const query = isObjectId ? { _id: idOrSlug } : { slug: idOrSlug };
+    const query = isObjectId
+      ? { _id: idOrSlug }
+      : {
+          $or: [
+            { slug: idOrSlug.toLowerCase() },
+            { customSlug: idOrSlug.toLowerCase() },
+            { name: { $regex: new RegExp(`^${idOrSlug.replace(/-/g, ' ')}$`, 'i') } },
+            { name: { $regex: new RegExp(`^${idOrSlug}$`, 'i') } },
+          ],
+        };
     query.isDeleted = false;
 
     const city = await City.findOne(query)
@@ -385,7 +442,23 @@ export const getCityById = async (req, res) => {
 export const updateCity = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, stateId, tier, isPopular, sortOrder, metaTitle, metaDescription, isActive } = req.body;
+    const {
+      name,
+      stateId,
+      tier,
+      isPopular,
+      sortOrder,
+      metaTitle,
+      metaDescription,
+      customSlug,
+      focusKeywords,
+      ogImage,
+      ogTitle,
+      ogDescription,
+      microServiceAreas,
+      faqs,
+      isActive,
+    } = req.body;
 
     const city = await City.findOne({ _id: id, isDeleted: false });
     if (!city) {
@@ -402,9 +475,35 @@ export const updateCity = async (req, res) => {
       city.stateId = stateId;
     }
 
+    // Handle Custom Slug or Name Slug
+    if (customSlug !== undefined) {
+      const cleanCustomSlug = typeof customSlug === 'string' ? customSlug.trim() : '';
+      city.customSlug = cleanCustomSlug;
+      if (cleanCustomSlug) {
+        const newSlug = generateSlug(cleanCustomSlug);
+        const duplicate = await City.findOne({
+          _id: { $ne: id },
+          stateId: targetStateId,
+          slug: newSlug,
+          isDeleted: false,
+        });
+        if (duplicate) {
+          return res.status(400).json({
+            success: false,
+            message: `A city with slug '${newSlug}' already exists in this state`,
+          });
+        }
+        city.slug = newSlug;
+      } else if (name && name.trim()) {
+        city.slug = generateSlug(name.trim());
+      } else {
+        city.slug = generateSlug(city.name);
+      }
+    }
+
     if (name && name.trim() !== city.name) {
       const cleanName = name.trim();
-      const newSlug = generateSlug(cleanName);
+      const newSlug = city.customSlug ? generateSlug(city.customSlug) : generateSlug(cleanName);
 
       const duplicate = await City.findOne({
         _id: { $ne: id },
@@ -416,12 +515,14 @@ export const updateCity = async (req, res) => {
       if (duplicate) {
         return res.status(400).json({
           success: false,
-          message: `City with name '${cleanName}' already exists in this state`,
+          message: `City with name '${cleanName}' or slug '${newSlug}' already exists in this state`,
         });
       }
 
       city.name = cleanName;
-      city.slug = newSlug;
+      if (!city.customSlug) {
+        city.slug = newSlug;
+      }
     }
 
     if (tier !== undefined) city.tier = tier;
@@ -429,6 +530,37 @@ export const updateCity = async (req, res) => {
     if (sortOrder !== undefined) city.sortOrder = Number(sortOrder);
     if (metaTitle !== undefined) city.metaTitle = metaTitle;
     if (metaDescription !== undefined) city.metaDescription = metaDescription;
+    if (ogImage !== undefined) city.ogImage = String(ogImage || '').trim();
+    if (ogTitle !== undefined) city.ogTitle = String(ogTitle || '').trim();
+    if (ogDescription !== undefined) city.ogDescription = String(ogDescription || '').trim();
+
+    if (focusKeywords !== undefined) {
+      city.focusKeywords = Array.isArray(focusKeywords)
+        ? focusKeywords.map((k) => String(k).trim()).filter(Boolean)
+        : typeof focusKeywords === 'string'
+        ? focusKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+        : [];
+    }
+
+    if (microServiceAreas !== undefined) {
+      city.microServiceAreas = Array.isArray(microServiceAreas)
+        ? microServiceAreas.map((a) => String(a).trim()).filter(Boolean)
+        : typeof microServiceAreas === 'string'
+        ? microServiceAreas.split(',').map((a) => a.trim()).filter(Boolean)
+        : [];
+    }
+
+    if (faqs !== undefined) {
+      city.faqs = Array.isArray(faqs)
+        ? faqs
+            .map((f) => ({
+              question: String(f.question || '').trim(),
+              answer: String(f.answer || '').trim(),
+            }))
+            .filter((f) => f.question || f.answer)
+        : [];
+    }
+
     if (isActive !== undefined) city.isActive = Boolean(isActive);
 
     await city.save();

@@ -61,6 +61,8 @@ router.patch('/states/:id/status', protect, authorizeRoles('super_admin', 'admin
 // City Admin Routes
 router.post('/cities', protect, authorizeRoles('super_admin', 'admin'), createCity);
 router.put('/cities/:id', protect, authorizeRoles('super_admin', 'admin'), updateCity);
+router.put('/cities/:id/seo', protect, authorizeRoles('super_admin', 'admin'), updateCity);
+router.patch('/cities/:id/seo', protect, authorizeRoles('super_admin', 'admin'), updateCity);
 router.delete('/cities/:id', protect, authorizeRoles('super_admin', 'admin'), deleteCity);
 router.patch('/cities/:id/status', protect, authorizeRoles('super_admin', 'admin'), toggleCityStatus);
 
