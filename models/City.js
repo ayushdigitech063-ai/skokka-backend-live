@@ -123,6 +123,62 @@ const CitySchema = new mongoose.Schema(
         },
       },
     ],
+    categorySeo: [
+      {
+        categorySlug: {
+          type: String,
+          trim: true,
+          required: true,
+          lowercase: true,
+        },
+        metaTitle: {
+          type: String,
+          default: '',
+        },
+        metaDescription: {
+          type: String,
+          default: '',
+        },
+        focusKeywords: {
+          type: [String],
+          default: [],
+        },
+        canonicalUrl: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+        robots: {
+          type: String,
+          trim: true,
+          default: 'index, follow',
+        },
+        redirectUrl: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+        redirectType: {
+          type: String,
+          enum: ['none', '301', '302'],
+          default: 'none',
+        },
+        pageContent: {
+          type: String,
+          default: '',
+        },
+        customSchema: {
+          type: String,
+          default: '',
+        },
+        faqs: [
+          {
+            question: { type: String, default: '' },
+            answer: { type: String, default: '' },
+          },
+        ],
+      },
+    ],
   },
   {
     timestamps: true,

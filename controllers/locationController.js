@@ -111,6 +111,34 @@ export const createState = async (req, res) => {
       redirectType: redirectType ? String(redirectType).trim() : 'none',
       customSchema: customSchema ? String(customSchema).trim() : '',
       faqs: formattedFaqs,
+      categorySeo: Array.isArray(req.body.categorySeo)
+        ? req.body.categorySeo
+            .map((item) => ({
+              categorySlug: String(item.categorySlug || '').trim().toLowerCase(),
+              metaTitle: String(item.metaTitle || ''),
+              metaDescription: String(item.metaDescription || ''),
+              focusKeywords: Array.isArray(item.focusKeywords)
+                ? item.focusKeywords.map((k) => String(k).trim()).filter(Boolean)
+                : typeof item.focusKeywords === 'string'
+                ? item.focusKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+                : [],
+              canonicalUrl: String(item.canonicalUrl || '').trim(),
+              robots: String(item.robots || 'index, follow').trim(),
+              redirectUrl: String(item.redirectUrl || '').trim(),
+              redirectType: String(item.redirectType || 'none').trim(),
+              pageContent: String(item.pageContent || ''),
+              customSchema: String(item.customSchema || ''),
+              faqs: Array.isArray(item.faqs)
+                ? item.faqs
+                    .map((f) => ({
+                      question: String(f.question || '').trim(),
+                      answer: String(f.answer || '').trim(),
+                    }))
+                    .filter((f) => f.question || f.answer)
+                : [],
+            }))
+            .filter((c) => c.categorySlug)
+        : [],
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     });
 
@@ -718,6 +746,37 @@ export const updateCity = async (req, res) => {
     if (redirectUrl !== undefined) city.redirectUrl = String(redirectUrl || '').trim();
     if (redirectType !== undefined) city.redirectType = String(redirectType || 'none').trim();
     if (customSchema !== undefined) city.customSchema = String(customSchema || '').trim();
+
+    if (req.body.categorySeo !== undefined) {
+      city.categorySeo = Array.isArray(req.body.categorySeo)
+        ? req.body.categorySeo
+            .map((item) => ({
+              categorySlug: String(item.categorySlug || '').trim().toLowerCase(),
+              metaTitle: String(item.metaTitle || ''),
+              metaDescription: String(item.metaDescription || ''),
+              focusKeywords: Array.isArray(item.focusKeywords)
+                ? item.focusKeywords.map((k) => String(k).trim()).filter(Boolean)
+                : typeof item.focusKeywords === 'string'
+                ? item.focusKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+                : [],
+              canonicalUrl: String(item.canonicalUrl || '').trim(),
+              robots: String(item.robots || 'index, follow').trim(),
+              redirectUrl: String(item.redirectUrl || '').trim(),
+              redirectType: String(item.redirectType || 'none').trim(),
+              pageContent: String(item.pageContent || ''),
+              customSchema: String(item.customSchema || ''),
+              faqs: Array.isArray(item.faqs)
+                ? item.faqs
+                    .map((f) => ({
+                      question: String(f.question || '').trim(),
+                      answer: String(f.answer || '').trim(),
+                    }))
+                    .filter((f) => f.question || f.answer)
+                : [],
+            }))
+            .filter((c) => c.categorySlug)
+        : [];
+    }
 
     if (focusKeywords !== undefined) {
       city.focusKeywords = Array.isArray(focusKeywords)
