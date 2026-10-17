@@ -325,6 +325,37 @@ export const updateState = async (req, res) => {
     if (redirectType !== undefined) state.redirectType = String(redirectType || 'none').trim();
     if (customSchema !== undefined) state.customSchema = String(customSchema || '').trim();
 
+    if (req.body.categorySeo !== undefined) {
+      state.categorySeo = Array.isArray(req.body.categorySeo)
+        ? req.body.categorySeo
+            .map((item) => ({
+              categorySlug: String(item.categorySlug || '').trim().toLowerCase(),
+              metaTitle: String(item.metaTitle || ''),
+              metaDescription: String(item.metaDescription || ''),
+              focusKeywords: Array.isArray(item.focusKeywords)
+                ? item.focusKeywords.map((k) => String(k).trim()).filter(Boolean)
+                : typeof item.focusKeywords === 'string'
+                ? item.focusKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+                : [],
+              canonicalUrl: String(item.canonicalUrl || '').trim(),
+              robots: String(item.robots || 'index, follow').trim(),
+              redirectUrl: String(item.redirectUrl || '').trim(),
+              redirectType: String(item.redirectType || 'none').trim(),
+              pageContent: String(item.pageContent || ''),
+              customSchema: String(item.customSchema || ''),
+              faqs: Array.isArray(item.faqs)
+                ? item.faqs
+                    .map((f) => ({
+                      question: String(f.question || '').trim(),
+                      answer: String(f.answer || '').trim(),
+                    }))
+                    .filter((f) => f.question || f.answer)
+                : [],
+            }))
+            .filter((c) => c.categorySlug)
+        : [];
+    }
+
     if (focusKeywords !== undefined) {
       state.focusKeywords = Array.isArray(focusKeywords)
         ? focusKeywords.map((k) => String(k).trim()).filter(Boolean)
