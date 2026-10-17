@@ -51,6 +51,80 @@ const AreaSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    metaTitle: {
+      type: String,
+      default: '',
+    },
+    metaDescription: {
+      type: String,
+      default: '',
+    },
+    customSlug: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    canonicalUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    robots: {
+      type: String,
+      trim: true,
+      default: 'index, follow',
+    },
+    redirectUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    redirectType: {
+      type: String,
+      enum: ['none', '301', '302'],
+      default: 'none',
+    },
+    focusKeywords: {
+      type: [String],
+      default: [],
+    },
+    ogImage: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    ogTitle: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    ogDescription: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    pageContent: {
+      type: String,
+      default: '',
+    },
+    customSchema: {
+      type: String,
+      default: '',
+    },
+    faqs: [
+      {
+        question: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+        answer: {
+          type: String,
+          trim: true,
+          default: '',
+        },
+      },
+    ],
   },
   {
     timestamps: true,
@@ -63,7 +137,9 @@ AreaSchema.index({ slug: 1, cityId: 1 }, { unique: true });
 
 // Auto-generate slug before validation
 AreaSchema.pre('validate', function () {
-  if (this.isModified('name') || !this.slug) {
+  if (this.customSlug && this.customSlug.trim()) {
+    this.slug = generateSlug(this.customSlug.trim());
+  } else if (!this.slug || (this.isModified('name') && !this.isModified('slug'))) {
     this.slug = generateSlug(this.name);
   }
 });

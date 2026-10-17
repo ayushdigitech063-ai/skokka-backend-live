@@ -40,6 +40,11 @@ export const createState = async (req, res) => {
       ogDescription,
       popularDistricts,
       pageContent,
+      canonicalUrl,
+      robots,
+      redirectUrl,
+      redirectType,
+      customSchema,
       faqs,
       isActive,
     } = req.body;
@@ -100,6 +105,11 @@ export const createState = async (req, res) => {
       ogDescription: ogDescription ? String(ogDescription).trim() : '',
       popularDistricts: formattedDistricts,
       pageContent: pageContent ? String(pageContent).trim() : '',
+      canonicalUrl: canonicalUrl ? String(canonicalUrl).trim() : '',
+      robots: robots ? String(robots).trim() : 'index, follow',
+      redirectUrl: redirectUrl ? String(redirectUrl).trim() : '',
+      redirectType: redirectType ? String(redirectType).trim() : 'none',
+      customSchema: customSchema ? String(customSchema).trim() : '',
       faqs: formattedFaqs,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     });
@@ -211,6 +221,11 @@ export const updateState = async (req, res) => {
       ogDescription,
       popularDistricts,
       pageContent,
+      canonicalUrl,
+      robots,
+      redirectUrl,
+      redirectType,
+      customSchema,
       faqs,
       isActive,
     } = req.body;
@@ -276,6 +291,11 @@ export const updateState = async (req, res) => {
     if (ogTitle !== undefined) state.ogTitle = String(ogTitle || '').trim();
     if (ogDescription !== undefined) state.ogDescription = String(ogDescription || '').trim();
     if (pageContent !== undefined) state.pageContent = String(pageContent || '').trim();
+    if (canonicalUrl !== undefined) state.canonicalUrl = String(canonicalUrl || '').trim();
+    if (robots !== undefined) state.robots = String(robots || '').trim();
+    if (redirectUrl !== undefined) state.redirectUrl = String(redirectUrl || '').trim();
+    if (redirectType !== undefined) state.redirectType = String(redirectType || 'none').trim();
+    if (customSchema !== undefined) state.customSchema = String(customSchema || '').trim();
 
     if (focusKeywords !== undefined) {
       state.focusKeywords = Array.isArray(focusKeywords)
@@ -402,6 +422,11 @@ export const createCity = async (req, res) => {
       ogDescription,
       microServiceAreas,
       pageContent,
+      canonicalUrl,
+      robots,
+      redirectUrl,
+      redirectType,
+      customSchema,
       faqs,
       isActive,
     } = req.body;
@@ -476,6 +501,11 @@ export const createCity = async (req, res) => {
       ogDescription: ogDescription ? String(ogDescription).trim() : '',
       microServiceAreas: formattedAreas,
       pageContent: pageContent ? String(pageContent).trim() : '',
+      canonicalUrl: canonicalUrl ? String(canonicalUrl).trim() : '',
+      robots: robots ? String(robots).trim() : 'index, follow',
+      redirectUrl: redirectUrl ? String(redirectUrl).trim() : '',
+      redirectType: redirectType ? String(redirectType).trim() : 'none',
+      customSchema: customSchema ? String(customSchema).trim() : '',
       faqs: formattedFaqs,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     });
@@ -600,6 +630,11 @@ export const updateCity = async (req, res) => {
       ogDescription,
       microServiceAreas,
       pageContent,
+      canonicalUrl,
+      robots,
+      redirectUrl,
+      redirectType,
+      customSchema,
       faqs,
       isActive,
     } = req.body;
@@ -678,6 +713,11 @@ export const updateCity = async (req, res) => {
     if (ogTitle !== undefined) city.ogTitle = String(ogTitle || '').trim();
     if (ogDescription !== undefined) city.ogDescription = String(ogDescription || '').trim();
     if (pageContent !== undefined) city.pageContent = String(pageContent || '').trim();
+    if (canonicalUrl !== undefined) city.canonicalUrl = String(canonicalUrl || '').trim();
+    if (robots !== undefined) city.robots = String(robots || '').trim();
+    if (redirectUrl !== undefined) city.redirectUrl = String(redirectUrl || '').trim();
+    if (redirectType !== undefined) city.redirectType = String(redirectType || 'none').trim();
+    if (customSchema !== undefined) city.customSchema = String(customSchema || '').trim();
 
     if (focusKeywords !== undefined) {
       city.focusKeywords = Array.isArray(focusKeywords)
@@ -788,7 +828,28 @@ export const toggleCityStatus = async (req, res) => {
  */
 export const createArea = async (req, res) => {
   try {
-    const { name, cityId, pincode, isPopular, sortOrder, isActive } = req.body;
+    const {
+      name,
+      cityId,
+      pincode,
+      isPopular,
+      sortOrder,
+      metaTitle,
+      metaDescription,
+      customSlug,
+      canonicalUrl,
+      robots,
+      redirectUrl,
+      redirectType,
+      focusKeywords,
+      ogImage,
+      ogTitle,
+      ogDescription,
+      pageContent,
+      customSchema,
+      faqs,
+      isActive,
+    } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, message: 'Area name is required' });
@@ -803,7 +864,8 @@ export const createArea = async (req, res) => {
     }
 
     const cleanName = name.trim();
-    const slug = generateSlug(cleanName);
+    const cleanCustomSlug = customSlug && typeof customSlug === 'string' ? customSlug.trim() : '';
+    const slug = cleanCustomSlug ? generateSlug(cleanCustomSlug) : generateSlug(cleanName);
 
     // Prevent duplicate area in the same city
     const existing = await Area.findOne({
@@ -815,9 +877,24 @@ export const createArea = async (req, res) => {
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: `Area '${cleanName}' already exists in city '${city.name}'`,
+        message: `Area '${cleanName}' or slug '${slug}' already exists in city '${city.name}'`,
       });
     }
+
+    const formattedKeywords = Array.isArray(focusKeywords)
+      ? focusKeywords.map((k) => String(k).trim()).filter(Boolean)
+      : typeof focusKeywords === 'string'
+      ? focusKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+      : [];
+
+    const formattedFaqs = Array.isArray(faqs)
+      ? faqs
+          .map((f) => ({
+            question: String(f.question || '').trim(),
+            answer: String(f.answer || '').trim(),
+          }))
+          .filter((f) => f.question || f.answer)
+      : [];
 
     const area = await Area.create({
       name: cleanName,
@@ -825,8 +902,22 @@ export const createArea = async (req, res) => {
       stateId: city.stateId, // derive stateId automatically from City
       pincode: pincode ? pincode.trim() : '',
       slug,
+      customSlug: cleanCustomSlug,
       isPopular: isPopular !== undefined ? Boolean(isPopular) : false,
       sortOrder: sortOrder || 0,
+      metaTitle: metaTitle || '',
+      metaDescription: metaDescription || '',
+      canonicalUrl: canonicalUrl ? String(canonicalUrl).trim() : '',
+      robots: robots ? String(robots).trim() : 'index, follow',
+      redirectUrl: redirectUrl ? String(redirectUrl).trim() : '',
+      redirectType: redirectType ? String(redirectType).trim() : 'none',
+      focusKeywords: formattedKeywords,
+      ogImage: ogImage ? String(ogImage).trim() : '',
+      ogTitle: ogTitle ? String(ogTitle).trim() : '',
+      ogDescription: ogDescription ? String(ogDescription).trim() : '',
+      pageContent: pageContent ? String(pageContent).trim() : '',
+      customSchema: customSchema ? String(customSchema).trim() : '',
+      faqs: formattedFaqs,
       isActive: isActive !== undefined ? Boolean(isActive) : true,
     });
 
@@ -894,7 +985,14 @@ export const getAreaById = async (req, res) => {
     const { idOrSlug } = req.params;
     const isObjectId = idOrSlug.match(/^[0-9a-fA-F]{24}$/);
 
-    const query = isObjectId ? { _id: idOrSlug } : { slug: idOrSlug };
+    const query = isObjectId
+      ? { _id: idOrSlug }
+      : {
+          $or: [
+            { slug: idOrSlug.toLowerCase() },
+            { customSlug: idOrSlug.toLowerCase() },
+          ],
+        };
     query.isDeleted = false;
 
     const area = await Area.findOne(query)
@@ -919,7 +1017,28 @@ export const getAreaById = async (req, res) => {
 export const updateArea = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, cityId, pincode, isPopular, sortOrder, isActive } = req.body;
+    const {
+      name,
+      cityId,
+      pincode,
+      isPopular,
+      sortOrder,
+      metaTitle,
+      metaDescription,
+      customSlug,
+      canonicalUrl,
+      robots,
+      redirectUrl,
+      redirectType,
+      focusKeywords,
+      ogImage,
+      ogTitle,
+      ogDescription,
+      pageContent,
+      customSchema,
+      faqs,
+      isActive,
+    } = req.body;
 
     const area = await Area.findOne({ _id: id, isDeleted: false });
     if (!area) {
@@ -937,9 +1056,35 @@ export const updateArea = async (req, res) => {
       area.stateId = city.stateId;
     }
 
+    // Handle Custom Slug or Name Slug
+    if (customSlug !== undefined) {
+      const cleanCustomSlug = typeof customSlug === 'string' ? customSlug.trim() : '';
+      area.customSlug = cleanCustomSlug;
+      if (cleanCustomSlug) {
+        const newSlug = generateSlug(cleanCustomSlug);
+        const duplicate = await Area.findOne({
+          _id: { $ne: id },
+          cityId: targetCityId,
+          slug: newSlug,
+          isDeleted: false,
+        });
+        if (duplicate) {
+          return res.status(400).json({
+            success: false,
+            message: `An area with slug '${newSlug}' already exists in this city`,
+          });
+        }
+        area.slug = newSlug;
+      } else if (name && name.trim()) {
+        area.slug = generateSlug(name.trim());
+      } else {
+        area.slug = generateSlug(area.name);
+      }
+    }
+
     if (name && name.trim() !== area.name) {
       const cleanName = name.trim();
-      const newSlug = generateSlug(cleanName);
+      const newSlug = area.customSlug ? generateSlug(area.customSlug) : generateSlug(cleanName);
 
       const duplicate = await Area.findOne({
         _id: { $ne: id },
@@ -951,17 +1096,50 @@ export const updateArea = async (req, res) => {
       if (duplicate) {
         return res.status(400).json({
           success: false,
-          message: `Area with name '${cleanName}' already exists in this city`,
+          message: `Area with name '${cleanName}' or slug '${newSlug}' already exists in this city`,
         });
       }
 
       area.name = cleanName;
-      area.slug = newSlug;
+      if (!area.customSlug) {
+        area.slug = newSlug;
+      }
     }
 
     if (pincode !== undefined) area.pincode = pincode.trim();
     if (isPopular !== undefined) area.isPopular = Boolean(isPopular);
     if (sortOrder !== undefined) area.sortOrder = Number(sortOrder);
+    if (metaTitle !== undefined) area.metaTitle = metaTitle;
+    if (metaDescription !== undefined) area.metaDescription = metaDescription;
+    if (ogImage !== undefined) area.ogImage = String(ogImage || '').trim();
+    if (ogTitle !== undefined) area.ogTitle = String(ogTitle || '').trim();
+    if (ogDescription !== undefined) area.ogDescription = String(ogDescription || '').trim();
+    if (pageContent !== undefined) area.pageContent = String(pageContent || '').trim();
+    if (canonicalUrl !== undefined) area.canonicalUrl = String(canonicalUrl || '').trim();
+    if (robots !== undefined) area.robots = String(robots || '').trim();
+    if (redirectUrl !== undefined) area.redirectUrl = String(redirectUrl || '').trim();
+    if (redirectType !== undefined) area.redirectType = String(redirectType || 'none').trim();
+    if (customSchema !== undefined) area.customSchema = String(customSchema || '').trim();
+
+    if (focusKeywords !== undefined) {
+      area.focusKeywords = Array.isArray(focusKeywords)
+        ? focusKeywords.map((k) => String(k).trim()).filter(Boolean)
+        : typeof focusKeywords === 'string'
+        ? focusKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+        : [];
+    }
+
+    if (faqs !== undefined) {
+      area.faqs = Array.isArray(faqs)
+        ? faqs
+            .map((f) => ({
+              question: String(f.question || '').trim(),
+              answer: String(f.answer || '').trim(),
+            }))
+            .filter((f) => f.question || f.answer)
+        : [];
+    }
+
     if (isActive !== undefined) area.isActive = Boolean(isActive);
 
     await area.save();

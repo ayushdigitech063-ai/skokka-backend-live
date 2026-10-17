@@ -81,9 +81,32 @@ const CitySchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
-    pageContent: {
+    canonicalUrl: {
       type: String,
       trim: true,
+      default: '',
+    },
+    robots: {
+      type: String,
+      trim: true,
+      default: 'index, follow',
+    },
+    redirectUrl: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    redirectType: {
+      type: String,
+      enum: ['none', '301', '302'],
+      default: 'none',
+    },
+    pageContent: {
+      type: String,
+      default: '',
+    },
+    customSchema: {
+      type: String,
       default: '',
     },
     faqs: [

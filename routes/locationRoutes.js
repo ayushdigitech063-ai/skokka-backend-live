@@ -74,6 +74,8 @@ router.patch('/cities/:id/status', protect, authorizeRoles('super_admin', 'admin
 // Area Admin Routes
 router.post('/areas', protect, authorizeRoles('super_admin', 'admin'), createArea);
 router.put('/areas/:id', protect, authorizeRoles('super_admin', 'admin'), updateArea);
+router.put('/areas/:id/seo', protect, authorizeRoles('super_admin', 'admin'), updateArea);
+router.patch('/areas/:id/seo', protect, authorizeRoles('super_admin', 'admin'), updateArea);
 router.delete('/areas/:id', protect, authorizeRoles('super_admin', 'admin'), deleteArea);
 router.patch('/areas/:id/status', protect, authorizeRoles('super_admin', 'admin'), toggleAreaStatus);
 
