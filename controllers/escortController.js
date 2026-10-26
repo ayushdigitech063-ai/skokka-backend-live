@@ -104,6 +104,43 @@ export const getAllEscortsAdmin = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────
+// @desc    Get ads submitted by a specific user / advertiser
+// @route   GET /api/escorts/user-ads
+// @access  Public
+// ─────────────────────────────────────────────────────────
+export const getUserEscorts = async (req, res) => {
+  try {
+    const { email, phone } = req.query;
+    if (!email && !phone) {
+      return res.status(200).json({ success: true, count: 0, data: [] });
+    }
+
+    const conditions = [];
+    if (email && typeof email === 'string' && email.trim()) {
+      const cleanEmail = email.trim();
+      conditions.push({ submittedBy: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } });
+    }
+    if (phone && typeof phone === 'string' && phone.trim()) {
+      const cleanPhone = phone.trim().replace(/[^0-9]/g, '');
+      if (cleanPhone) {
+        conditions.push({ phone: { $regex: new RegExp(cleanPhone, 'i') } });
+      }
+    }
+
+    const filter = conditions.length > 1 ? { $or: conditions } : conditions[0];
+    const profiles = await EscortProfile.find(filter).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: profiles.length,
+      data: profiles.map(toFrontend),
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────
 // @desc    Get single escort by skId or _id
 // @route   GET /api/escorts/:id
 // @access  Public

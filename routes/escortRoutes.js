@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getPublicEscorts,
   getAllEscortsAdmin,
+  getUserEscorts,
   getEscortById,
   createEscort,
   updateEscort,
@@ -19,6 +20,8 @@ const router = express.Router();
 router.get('/', getPublicEscorts);
 router.get('/admin/all', getAllEscortsAdmin);
 router.get('/admin', getAllEscortsAdmin);          // ALL profiles (admin panel)
+router.get('/user-ads', getUserEscorts);           // Fast user ads query by email/phone
+router.get('/my-ads', getUserEscorts);             // Alias for user ads
 router.post('/seed', seedDefaultProfiles);         // Seed demo data (run once)
 router.get('/:id', getEscortById);
 
