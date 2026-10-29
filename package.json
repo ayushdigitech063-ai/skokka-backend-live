@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "node server.js",
-    "seed": "node server.js --seed"
+    "seed": "node server.js --seed",
+    "migrate:images": "node scripts/migrateBase64Images.js",
+    "migrate:images:dry": "node scripts/migrateBase64Images.js --dry-run"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
